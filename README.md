@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MindShift – Adaptive Cognitive Challenge Game
 
 > An intelligent, adaptive cognitive training platform and 3D research facility built with vanilla HTML5, CSS3, ES6 JavaScript, Three.js, Web Audio API, Web Speech API, and Chart.js.
@@ -67,3 +68,6 @@ npx serve -l 8080
 ```
 
 Open your browser to `http://localhost:8080/`.
+=======
+# MindShift
+>>>>>>> 8d43513391f744b500b61401b5bf15967cd9ba58
