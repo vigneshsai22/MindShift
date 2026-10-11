@@ -1,0 +1,22 @@
+{
+  "challengeType": "LogicSwitch",
+  "category": "Logic",
+  "easy": {
+    "timeLimit": 60.0,
+    "logicSwitchCount": 3,
+    "logicRuleCount": 2,
+    "logicRuleComplexity": 0
+  },
+  "medium": {
+    "timeLimit": 45.0,
+    "logicSwitchCount": 5,
+    "logicRuleCount": 4,
+    "logicRuleComplexity": 1
+  },
+  "hard": {
+    "timeLimit": 35.0,
+    "logicSwitchCount": 7,
+    "logicRuleCount": 6,
+    "logicRuleComplexity": 2
+  }
+}

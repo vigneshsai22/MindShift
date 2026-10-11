@@ -1,0 +1,22 @@
+{
+  "challengeType": "MemoryObjectRecall",
+  "category": "Memory",
+  "easy": {
+    "timeLimit": 45.0,
+    "memoryObjectCount": 3,
+    "memoryChangeCount": 1,
+    "memoryObservationTime": 10.0
+  },
+  "medium": {
+    "timeLimit": 35.0,
+    "memoryObjectCount": 5,
+    "memoryChangeCount": 2,
+    "memoryObservationTime": 7.0
+  },
+  "hard": {
+    "timeLimit": 25.0,
+    "memoryObjectCount": 7,
+    "memoryChangeCount": 3,
+    "memoryObservationTime": 4.0
+  }
+}

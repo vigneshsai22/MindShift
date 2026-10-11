@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MindShift – An adaptive 2D multimedia intelligence game that trains cognitive skills through dynamic challenges.">
+  <title>MindShift – Adaptive Intelligence Game</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Three.js r165 importmap — pins exact version, no build step needed -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/screens.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SPLASH SCREEN                                   -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen active" id="splash-screen" aria-label="Loading screen">
+    <canvas id="splash-canvas"></canvas>
+    <div class="splash-overlay">
+      <div class="splash-logo">
+        <div class="logo-icon-wrap">
+          <svg id="brain-svg" width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="38" stroke="url(#grad1)" stroke-width="3" fill="none"/>
+            <path d="M25 40 Q30 25 40 28 Q50 25 55 40 Q60 55 40 58 Q20 55 25 40Z" fill="url(#grad2)" opacity="0.8"/>
+            <circle cx="35" cy="36" r="4" fill="#fff" opacity="0.6"/>
+            <circle cx="48" cy="38" r="3" fill="#fff" opacity="0.5"/>
+            <defs>
+              <linearGradient id="grad1" x1="0" y1="0" x2="80" y2="80">
+                <stop offset="0%" stop-color="#7c3aed"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+              <linearGradient id="grad2" x1="0" y1="0" x2="80" y2="80">
+                <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.9"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h1 class="splash-title">MindShift</h1>
+        <p class="splash-sub">Adaptive Intelligence Game</p>
+      </div>
+      <div class="splash-loader">
+        <div class="loader-bar-wrap">
+          <div class="loader-bar" id="splash-loader-bar"></div>
+        </div>
+        <p class="loader-text" id="splash-loader-text">Initializing systems…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- MAIN MENU                                       -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="main-menu" aria-label="Main menu">
+    <canvas id="menu-canvas"></canvas>
+    <div class="menu-content">
+      <header class="menu-header">
+        <div class="menu-logo">
+          <svg width="40" height="40" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="38" stroke="url(#mg1)" stroke-width="3" fill="none"/>
+            <path d="M25 40 Q30 25 40 28 Q50 25 55 40 Q60 55 40 58 Q20 55 25 40Z" fill="url(#mg2)" opacity="0.9"/>
+            <defs>
+              <linearGradient id="mg1" x1="0" y1="0" x2="80" y2="80"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+              <linearGradient id="mg2" x1="0" y1="0" x2="80" y2="80"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+            </defs>
+          </svg>
+          <span>MindShift</span>
+        </div>
+        <p class="menu-tagline">Train your mind. Track your growth.</p>
+      </header>
+
+      <div class="profile-section">
+        <h2 class="section-label">Select Player</h2>
+        <div class="profile-grid" id="profile-grid">
+          <!-- Populated by JS -->
+        </div>
+        <button class="btn-ghost" id="btn-new-profile">
+          <span>＋</span> Create New Profile
+        </button>
+      </div>
+
+      <div class="menu-actions" id="menu-actions">
+        <button class="btn-primary btn-play" id="btn-play" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Play Game
+        </button>
+        <div class="btn-row">
+          <button class="btn-secondary" id="btn-history" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            History
+          </button>
+          <button class="btn-secondary" id="btn-achievements" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+            Achievements
+          </button>
+        </div>
+        <!-- 3D Mind Lab button — launches immersive Three.js facility -->
+        <button class="btn-3d" id="btn-3d-lab">
+          🔬 3D Mind Lab Research Facility
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- PROFILE SETUP                                   -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="profile-setup" aria-label="Profile setup">
+    <div class="setup-content">
+      <button class="btn-back" id="profile-back">← Back</button>
+      <div class="setup-card glass-card">
+        <h2>Create Your Profile</h2>
+        <p class="setup-sub">Personalize your MindShift experience</p>
+
+        <div class="avatar-section">
+          <h3>Choose Avatar</h3>
+          <div class="avatar-grid" id="avatar-grid">
+            <button class="avatar-btn selected" data-avatar="0" aria-label="Astronaut avatar">🧑‍🚀</button>
+            <button class="avatar-btn" data-avatar="1" aria-label="Wizard avatar">🧙</button>
+            <button class="avatar-btn" data-avatar="2" aria-label="Scientist avatar">👩‍🔬</button>
+            <button class="avatar-btn" data-avatar="3" aria-label="Robot avatar">🤖</button>
+            <button class="avatar-btn" data-avatar="4" aria-label="Alien avatar">👽</button>
+            <button class="avatar-btn" data-avatar="5" aria-label="Ninja avatar">🥷</button>
+          </div>
+        </div>
+
+        <div class="name-section">
+          <label for="player-name-input">Player Name</label>
+          <input type="text" id="player-name-input" placeholder="Enter your name…" maxlength="20" autocomplete="off">
+          <p class="input-hint" id="name-hint"></p>
+        </div>
+
+        <button class="btn-primary btn-full" id="btn-create-profile">Create Profile →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- GAME MODE SELECT                               -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="game-mode-select" aria-label="Game mode selection">
+    <canvas id="mode-canvas"></canvas>
+    <div class="mode-content">
+      <button class="btn-back" id="mode-back">← Back</button>
+      <header class="mode-header">
+        <h2>Choose Your Challenge</h2>
+        <p class="mode-tagline">Each mode targets different cognitive skills</p>
+      </header>
+      <div class="mode-grid" id="mode-grid">
+
+        <button class="mode-card" id="mode-classic" data-mode="classic">
+          <div class="mode-card-bg"></div>
+          <div class="mode-card-content">
+            <span class="mode-icon">🧠</span>
+            <h3 class="mode-name">Classic Mode</h3>
+            <p class="mode-desc">6 cognitive challenges: Memory, Audio, Reaction Time, Pattern Recognition, Visual Observation &amp; Logical Reasoning</p>
+            <div class="mode-tags">
+              <span class="mode-tag">🔊 Audio</span>
+              <span class="mode-tag">⚡ Reaction</span>
+              <span class="mode-tag">💾 Memory</span>
+            </div>
+            <div class="mode-count">6 Challenge Types</div>
+            <div class="mode-play-btn">Play Classic →</div>
+          </div>
+        </button>
+
+        <button class="mode-card mode-iq-card" id="mode-iq" data-mode="iq">
+          <div class="mode-card-bg"></div>
+          <span class="mode-new-badge">NEW</span>
+          <div class="mode-card-content">
+            <span class="mode-icon">🔬</span>
+            <h3 class="mode-name">IQ &amp; Reasoning</h3>
+            <p class="mode-desc">7 IQ-style cognitive puzzles: Number Sequences, Matrix Puzzles, Spatial Reasoning, Odd-One-Out, Logic Deductions &amp; more</p>
+            <div class="mode-tags">
+              <span class="mode-tag">🔢 Numbers</span>
+              <span class="mode-tag">🔷 Matrix</span>
+              <span class="mode-tag">🔄 Spatial</span>
+            </div>
+            <div class="mode-count">7 IQ Puzzle Types</div>
+            <div class="mode-play-btn mode-iq-play">Play IQ →</div>
+          </div>
+        </button>
+
+        <button class="mode-card mode-mixed-card" id="mode-mixed" data-mode="mixed">
+          <div class="mode-card-bg"></div>
+          <div class="mode-card-content">
+            <span class="mode-icon">⚡</span>
+            <h3 class="mode-name">Mixed Mode</h3>
+            <p class="mode-desc">The ultimate cognitive workout — all 13 challenge types combined for maximum mental stimulation and adaptivity</p>
+            <div class="mode-tags">
+              <span class="mode-tag">13 Types</span>
+              <span class="mode-tag">🏆 Ultimate</span>
+              <span class="mode-tag">🎯 All Skills</span>
+            </div>
+            <div class="mode-count">All 13 Challenge Types</div>
+            <div class="mode-play-btn">Play Mixed →</div>
+          </div>
+        </button>
+
+        <button class="mode-card mode-3d-card" id="mode-3d" data-mode="3d">
+          <div class="mode-card-bg"></div>
+          <span class="mode-new-badge" style="background:linear-gradient(135deg,#06b6d4,#7c3aed)">3D LAB</span>
+          <div class="mode-card-content">
+            <span class="mode-icon">🌐</span>
+            <h3 class="mode-name">3D Mind Lab Facility</h3>
+            <p class="mode-desc">First-person 3D research facility powered by Three.js. Explore 6 interactive research labs with holographic AI guide ARIA and dynamic 3D brain mapping.</p>
+            <div class="mode-tags">
+              <span class="mode-tag">🎮 3D World</span>
+              <span class="mode-tag">🤖 AI ARIA</span>
+              <span class="mode-tag">🧠 3D Brain</span>
+            </div>
+            <div class="mode-count">6 Immersive 3D Labs</div>
+            <div class="mode-play-btn" style="background:linear-gradient(135deg,#06b6d4,#7c3aed)">Enter 3D Lab →</div>
+          </div>
+        </button>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- DIFFICULTY SELECT                               -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="difficulty-select" aria-label="Difficulty selection">
+    <div class="diff-content">
+      <header class="diff-header">
+        <h2>Select Starting Difficulty</h2>
+        <p>The adaptive system will adjust as you play</p>
+      </header>
+      <div class="diff-grid" id="diff-grid">
+        <button class="diff-card" data-diff="1" id="diff-beginner">
+          <span class="diff-icon">🌱</span>
+          <span class="diff-name">Beginner</span>
+          <span class="diff-desc">Simple patterns, plenty of time</span>
+          <div class="diff-stars">★☆☆☆☆</div>
+        </button>
+        <button class="diff-card" data-diff="2" id="diff-easy">
+          <span class="diff-icon">🌤️</span>
+          <span class="diff-name">Easy</span>
+          <span class="diff-desc">Light challenges, moderate pace</span>
+          <div class="diff-stars">★★☆☆☆</div>
+        </button>
+        <button class="diff-card selected" data-diff="3" id="diff-medium">
+          <span class="diff-icon">⚡</span>
+          <span class="diff-name">Medium</span>
+          <span class="diff-desc">Balanced difficulty — recommended</span>
+          <div class="diff-stars">★★★☆☆</div>
+          <span class="diff-badge">Recommended</span>
+        </button>
+        <button class="diff-card" data-diff="4" id="diff-hard">
+          <span class="diff-icon">🔥</span>
+          <span class="diff-name">Hard</span>
+          <span class="diff-desc">Complex problems, tight timing</span>
+          <div class="diff-stars">★★★★☆</div>
+        </button>
+        <button class="diff-card" data-diff="5" id="diff-expert">
+          <span class="diff-icon">💎</span>
+          <span class="diff-name">Expert</span>
+          <span class="diff-desc">Maximum challenge for top minds</span>
+          <div class="diff-stars">★★★★★</div>
+        </button>
+      </div>
+      <div class="diff-actions">
+        <button class="btn-ghost" id="btn-diff-back">← Back</button>
+        <button class="btn-primary" id="btn-start-game">Start Game →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- GAME SCREEN                                     -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="game-screen" aria-label="Game play area">
+    <!-- HUD -->
+    <div id="game-hud">
+      <div class="hud-left">
+        <div class="hud-item" id="hud-score-wrap">
+          <span class="hud-label">Score</span>
+          <span class="hud-value" id="hud-score">0</span>
+        </div>
+        <div class="hud-item" id="hud-streak-wrap">
+          <span class="hud-label">Streak</span>
+          <span class="hud-value streak-val" id="hud-streak">0🔥</span>
+        </div>
+      </div>
+      <div class="hud-center">
+        <div class="challenge-progress">
+          <span id="hud-challenge-num">1</span> / <span id="hud-challenge-total">10</span>
+        </div>
+        <div class="progress-dots" id="progress-dots"></div>
+        <div class="hud-category-badge" id="hud-category-badge">Loading…</div>
+      </div>
+      <div class="hud-right">
+        <div class="hud-item" id="hud-timer-wrap">
+          <span class="hud-label">Time</span>
+          <span class="hud-value timer-val" id="hud-timer">30</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Hints</span>
+          <span class="hud-value hint-val" id="hud-hints">3💡</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas for challenge rendering -->
+    <div id="canvas-wrapper">
+      <canvas id="game-canvas"></canvas>
+      <!-- HTML challenge overlay -->
+      <div id="challenge-overlay"></div>
+    </div>
+
+    <!-- Bottom controls -->
+    <div id="game-controls">
+      <button class="btn-ghost btn-sm" id="btn-hint">💡 Use Hint</button>
+      <button class="btn-ghost btn-sm" id="btn-audio-toggle">🔊 Audio</button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- RESULTS SCREEN (per challenge)                  -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="results-screen" aria-label="Challenge results">
+    <div class="results-content" id="results-content">
+      <div class="result-icon" id="result-icon"></div>
+      <h2 class="result-title" id="result-title"></h2>
+      <p class="result-sub" id="result-sub"></p>
+      <div class="result-stats">
+        <div class="stat-chip" id="result-score-chip">
+          <span class="chip-label">Points Earned</span>
+          <span class="chip-val" id="result-points">+0</span>
+        </div>
+        <div class="stat-chip" id="result-time-chip">
+          <span class="chip-label">Response Time</span>
+          <span class="chip-val" id="result-time">0.0s</span>
+        </div>
+        <div class="stat-chip" id="result-accuracy-chip">
+          <span class="chip-label">Accuracy</span>
+          <span class="chip-val" id="result-accuracy">0%</span>
+        </div>
+      </div>
+      <div class="streak-message" id="streak-message"></div>
+      <div class="adaptive-message" id="adaptive-message"></div>
+      <button class="btn-primary" id="btn-next-challenge">Next Challenge →</button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- ANALYTICS DASHBOARD                             -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="analytics-dashboard" aria-label="Performance analytics">
+    <div class="analytics-scroll">
+      <header class="analytics-header">
+        <div class="analytics-title-wrap">
+          <h2>Session Report</h2>
+          <p class="analytics-sub" id="analytics-player-name"></p>
+        </div>
+        <div class="overall-score-badge" id="overall-score-badge">
+          <span class="badge-val" id="analytics-total-score">0</span>
+          <span class="badge-label">Total Score</span>
+        </div>
+      </header>
+
+      <!-- Stat Cards Row -->
+      <div class="stats-grid" id="analytics-stats-grid">
+        <div class="stat-card glass-card">
+          <span class="stat-card-icon">🎯</span>
+          <span class="stat-card-label">Overall Accuracy</span>
+          <span class="stat-card-val" id="an-accuracy">0%</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-card-icon">⚡</span>
+          <span class="stat-card-label">Avg Response Time</span>
+          <span class="stat-card-val" id="an-avg-time">0.0s</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-card-icon">🔥</span>
+          <span class="stat-card-label">Best Streak</span>
+          <span class="stat-card-val" id="an-streak">0</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-card-icon">✅</span>
+          <span class="stat-card-label">Challenges Done</span>
+          <span class="stat-card-val" id="an-challenges">0</span>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-grid">
+        <div class="chart-card glass-card">
+          <h3 class="chart-title">Cognitive Performance Radar</h3>
+          <div class="chart-wrap radar-wrap">
+            <canvas id="radar-chart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card glass-card">
+          <h3 class="chart-title">Category Scores</h3>
+          <div class="chart-wrap">
+            <canvas id="bar-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card glass-card full-width">
+        <h3 class="chart-title">Difficulty Progression</h3>
+        <div class="chart-wrap line-wrap">
+          <canvas id="line-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Strengths / Weaknesses -->
+      <div class="insight-grid">
+        <div class="insight-card strength glass-card">
+          <span class="insight-icon">💪</span>
+          <h3>Strongest Area</h3>
+          <p id="an-strength">—</p>
+        </div>
+        <div class="insight-card weakness glass-card">
+          <span class="insight-icon">📈</span>
+          <h3>Area to Improve</h3>
+          <p id="an-weakness">—</p>
+        </div>
+        <div class="insight-card adaptive glass-card">
+          <span class="insight-icon">🧠</span>
+          <h3>Adaptive Summary</h3>
+          <p id="an-adaptive">—</p>
+        </div>
+      </div>
+
+      <!-- IQ Analytics Section (shown for IQ/Mixed modes) -->
+      <div class="iq-analytics-section glass-card" id="iq-analytics-section" style="display:none">
+        <div class="iq-analytics-header">
+          <div class="iq-score-badge">
+            <span class="iq-score-val" id="iq-score-val">—</span>
+            <span class="iq-score-label">IQ-Style Reasoning Score</span>
+          </div>
+          <div style="flex:1">
+            <h3 style="margin-bottom:6px;color:var(--iq-accent)">🔬 IQ &amp; Reasoning Breakdown</h3>
+            <p class="iq-disclaimer">⚠️ This is a game-based cognitive performance score, not a clinical IQ assessment.</p>
+          </div>
+        </div>
+        <div class="iq-cats-grid" id="iq-cats-grid">
+          <!-- Populated by JS -->
+        </div>
+        <div class="chart-wrap" style="height:200px;margin-top:var(--space-md)">
+          <canvas id="iq-bar-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Achievements unlocked -->
+      <div class="achievements-section glass-card" id="analytics-achievements-section">
+        <h3>🏆 Achievements Unlocked This Session</h3>
+        <div class="achievement-chips" id="analytics-achievement-chips">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="analytics-actions">
+        <button class="btn-primary" id="btn-play-again">▶ Play Again</button>
+        <button class="btn-secondary" id="btn-back-menu">← Main Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- ACHIEVEMENTS SCREEN                             -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="achievements-screen" aria-label="Achievements gallery">
+    <div class="achievements-content">
+      <header class="achievements-header">
+        <button class="btn-back" id="ach-back">← Back</button>
+        <h2>Achievements</h2>
+        <p id="ach-count">0 / 8 Unlocked</p>
+      </header>
+      <div class="achievements-grid" id="achievements-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- HISTORY SCREEN                                  -->
+  <!-- ══════════════════════════════════════════════ -->
+  <section class="screen" id="history-screen" aria-label="Game history">
+    <div class="history-content">
+      <header class="history-header">
+        <button class="btn-back" id="hist-back">← Back</button>
+        <h2>Play History</h2>
+      </header>
+      <div class="history-list" id="history-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Global toast notification -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- Achievement unlock popup -->
+  <div id="achievement-popup" class="achievement-popup" aria-live="polite">
+    <div class="ach-popup-inner">
+      <span class="ach-popup-icon" id="ach-popup-icon">🏆</span>
+      <div class="ach-popup-text">
+        <span class="ach-popup-title">Achievement Unlocked!</span>
+        <span class="ach-popup-name" id="ach-popup-name"></span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- 3D canvas — hidden until 3D mode launches -->
+<canvas id="three-canvas" style="display:none;position:fixed;inset:0;width:100vw;height:100vh;z-index:300"></canvas>
+
+<!-- ES6 Module Entry Point -->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

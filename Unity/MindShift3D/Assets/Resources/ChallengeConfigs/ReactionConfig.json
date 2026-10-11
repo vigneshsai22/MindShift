@@ -1,0 +1,25 @@
+{
+  "challengeType": "ReactionTarget",
+  "category": "Reaction",
+  "easy": {
+    "timeLimit": 30.0,
+    "reactionWindowSec": 2.0,
+    "reactionSimultaneous": 1,
+    "reactionDecoys": 0,
+    "reactionRounds": 10
+  },
+  "medium": {
+    "timeLimit": 30.0,
+    "reactionWindowSec": 1.5,
+    "reactionSimultaneous": 2,
+    "reactionDecoys": 2,
+    "reactionRounds": 15
+  },
+  "hard": {
+    "timeLimit": 30.0,
+    "reactionWindowSec": 1.0,
+    "reactionSimultaneous": 3,
+    "reactionDecoys": 5,
+    "reactionRounds": 20
+  }
+}
