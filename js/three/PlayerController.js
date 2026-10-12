@@ -71,15 +71,20 @@ export class PlayerController {
     this.canvas.addEventListener('click', this._onClick);
   }
 
-  enable() {
+  enable(allowPointerLock = false) {
     this._enabled = true;
-    this.canvas.addEventListener('click', this._requestLock, { once: true });
+    this.allowPointerLock = allowPointerLock;
+    if (this.allowPointerLock) {
+      this.canvas.addEventListener('click', this._requestLock, { once: true });
+    }
   }
 
   disable() {
     this._enabled = false;
     this._isDragging = false;
+    this.allowPointerLock = false;
     this._keys = {};
+    this.canvas.removeEventListener('click', this._requestLock);
     if (document.pointerLockElement === this.canvas) {
       document.exitPointerLock?.();
     }

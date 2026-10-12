@@ -95,3 +95,33 @@ Default entry point is **`http://localhost:8080/`** (no query string required).
 
 9. [`DECISIONS.md`](file:///c:/2d/DECISIONS.md):
    - Logged architectural decisions for default entry, home screen CTA design, legacy modes preservation, and honest status audit.
+
+---
+
+## Stage 1: Input Pipeline Audit & Verification (100% Passed)
+
+### Architecture
+- **Unified Engine**: Created [`js/core/InputManager.js`](file:///c:/2d/js/core/InputManager.js) handling Pointer Events (`pointerdown`, `pointermove`, `pointerup`, `pointercancel`) for unified mouse, touch, and pen compatibility.
+- **Bounding Box NDC**: Normalised device coordinates computed from `canvas.getBoundingClientRect()` with automatic recalculation on resize, scroll, and orientation change.
+- **Touch Protection**: `touch-action: none` applied to `#three-canvas` to suppress native browser zoom, pull-to-refresh, and drag gestures.
+- **Hit Proxies**: Invisible enlarged proxies (>= 44px on screen) generated per interactive 3D object to prevent missing clicks.
+- **Overlay Decoupling**: Set `pointer-events: none` on `#hud-3d` container and `.hud3d-cockpit-bar`, allowing 3D raycasting through upper screen areas while keeping buttons clickable.
+- **Pointer Lock Guard**: Disabled default pointer lock in click-based scenes, keeping pointer lock strictly opt-in for first-person walking.
+- **Audio Gesture Unlock**: Automatically calls `SFXLib.resume()` on the user's first input gesture.
+- **Self-Test API**: Implemented `window.__dev.testInput()` and `window.__dev.testAllGames()`.
+
+### Automated Input Test Verification Table (`window.__dev.testAllGames()`)
+
+| Game ID | Cognitive Wing | Interactive Targets | Hits Registered | Missed | Accuracy | Status |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| `lumen-pond` | Memory Vault | 7 | 7 | 0 | 100% | ✅ **PASSED** |
+| `terminal-hack` | Logic Terminal | 3 | 3 | 0 | 100% | ✅ **PASSED** |
+| `hologram-matrix` | Pattern Gallery | 4 | 4 | 0 | 100% | ✅ **PASSED** |
+| `rotation-core` | Spatial Lab | 3 | 3 | 0 | 100% | ✅ **PASSED** |
+| `reflex-arena` | Reaction Arena | 1 | 1 | 0 | 100% | ✅ **PASSED** |
+| `anomaly-rooms` | Observation Chamber | 4 | 4 | 0 | 100% | ✅ **PASSED** |
+
+**Overall Input Accuracy:** **100% across all 6 games (22/22 targets hit).**
+Verification recording: [verify_interactive_play_1791828671242.webp](file:///C:/Users/Lenovo/.gemini/antigravity-ide/brain/7361e43c-8443-4320-84cd-3b1c4826e443/verify_interactive_play_1791828671242.webp)
+Test report capture: [autotest_table_2_1791828631975.png](file:///C:/Users/Lenovo/.gemini/antigravity-ide/brain/7361e43c-8443-4320-84cd-3b1c4826e443/autotest_table_2_1791828631975.png)
+

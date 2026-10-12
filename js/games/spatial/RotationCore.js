@@ -184,11 +184,65 @@ export class RotationCore extends GameBase {
 
       this.addObject(candHolder);
       this.candidates.push({ mesh: candHolder, data: candHolder.userData });
+
+      // Register with unified InputManager
+      this.registerTarget(`cand_${i}`, candHolder, {
+        hitRadius: 1.4,
+        key: String(i + 1),
+        onHover: (hovered) => {
+          if (hovered) ringMat.opacity = 0.8;
+          else ringMat.opacity = 0.3;
+        },
+        onPress: () => {
+          if (this.paused || this.finished) return;
+          this._selectCandidate(candHolder.userData);
+        }
+      });
+    }
+
+    // Register drag handler with InputManager for smooth polyhedra inspection
+    if (this.inputManager) {
+      this.inputManager.setDragHandler({
+        onDown: (e) => {
+          this._isDragging = true;
+          this._prevPointer.x = e.clientX;
+          this._prevPointer.y = e.clientY;
+        },
+        onMove: (e) => {
+          if (!this._isDragging || !this._refModel) return;
+          const dx = e.clientX - this._prevPointer.x;
+          const dy = e.clientY - this._prevPointer.y;
+          this._prevPointer.x = e.clientX;
+          this._prevPointer.y = e.clientY;
+          this._refModel.rotation.y += dx * 0.012;
+          this._refModel.rotation.x += dy * 0.012;
+        },
+        onUp: () => {
+          this._isDragging = false;
+        }
+      });
     }
 
     EventBus.emit('hud:subtitle', {
       text: 'Mental Rotation: Identify which candidate is identical to the reference core.'
     });
+  }
+
+  _selectCandidate(userData) {
+    const { isMatch, ringMat } = userData;
+    if (isMatch) {
+      SFXLib.playSuccess();
+      ringMat.color.setHex(0x10b981);
+      ringMat.opacity = 1.0;
+      EventBus.emit('hud:subtitle', { text: 'Spatial congruence verified! Core synchronized.' });
+      this.completeTrial(true, 1.0);
+    } else {
+      SFXLib.playError();
+      this.recordResponse(false);
+      ringMat.color.setHex(0xef4444);
+      ringMat.opacity = 0.9;
+      EventBus.emit('hud:subtitle', { text: 'Chiral reflection detected. Non-isomorphic.' });
+    }
   }
 
   _onPointerDown(e) {
@@ -217,20 +271,7 @@ export class RotationCore extends GameBase {
       }
 
       if (obj.userData && obj.userData.index !== undefined) {
-        const { isMatch, ringMat } = obj.userData;
-        if (isMatch) {
-          SFXLib.playSuccess();
-          ringMat.color.setHex(0x10b981);
-          ringMat.opacity = 1.0;
-          EventBus.emit('hud:subtitle', { text: 'Spatial congruence verified! Core synchronized.' });
-          this.completeTrial(true, 1.0);
-        } else {
-          SFXLib.playError();
-          this.recordResponse(false);
-          ringMat.color.setHex(0xef4444);
-          ringMat.opacity = 0.9;
-          EventBus.emit('hud:subtitle', { text: 'Chiral reflection detected. Non-isomorphic.' });
-        }
+        this._selectCandidate(obj.userData);
       }
     }
   }

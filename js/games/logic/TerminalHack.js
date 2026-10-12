@@ -131,6 +131,25 @@ export class TerminalHack extends GameBase {
 
       this.addObject(swGroup);
       this._switches.push(swData);
+
+      // Register with unified InputManager
+      this.registerTarget(`switch_${i}`, swGroup, {
+        hitRadius: 1.1,
+        hitShape: 'box',
+        hitSize: new THREE.Vector3(1.2, 1.2, 1.0),
+        key: String(i + 1),
+        onHover: (hovered) => {
+          if (hovered) {
+            knobMat.emissiveIntensity = swData.state === 1 ? 1.6 : 0.6;
+          } else {
+            knobMat.emissiveIntensity = swData.state === 1 ? 1.2 : 0.2;
+          }
+        },
+        onPress: () => {
+          if (this.paused || this.finished) return;
+          this._toggleSwitch(i);
+        }
+      });
     }
 
     // Circuit Status indicator on terminal screen

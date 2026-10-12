@@ -1952,10 +1952,19 @@
   pointer-events: none !important;
 }
 #hud-3d button,
-#hud-3d .hud3d-dock-cluster,
-#hud-3d .hud3d-cockpit-bar,
-#hud-3d .hud3d-pause-overlay.visible {
+#hud-3d a,
+#hud-3d .hud3d-dock-btn,
+#hud-3d .hud3d-icon-btn,
+#hud-3d .hud3d-back-btn,
+#hud-3d .hud3d-pause-overlay.visible,
+#hud-3d .hud3d-pause-overlay.visible * {
   pointer-events: auto !important;
+}
+
+#three-canvas {
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 /* TOP COCKPIT BAR */

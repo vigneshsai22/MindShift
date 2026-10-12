@@ -21,6 +21,7 @@ import { HUD3D }              from './ui/HUD3D.js';
 import { CatalogueTerminal }  from './ui/CatalogueTerminal.js';
 import { LevelMap }           from './ui/LevelMap.js';
 import { ResultScreen3D }     from './ui/ResultScreen3D.js';
+import { InputManager }       from './core/InputManager.js';
 
 // Tier 1 Games
 import { LumenPond }          from './games/memory/LumenPond.js';
@@ -112,6 +113,10 @@ export class App {
     this.director = new Director();
     this.trialGen = new TrialGenerator();
 
+    // Initialize unified InputManager
+    this.inputManager = new InputManager({ canvas: this.canvas });
+    window.__inputManager = this.inputManager;
+
     // Setup Developer API
     this._setupDevApi();
 
@@ -149,6 +154,9 @@ export class App {
       // 1. Init 3D Rendering & Camera
       this.scene3d = new Scene3D(this.canvas);
       await this.scene3d.init();
+
+      this.inputManager.setCamera(this.scene3d.camera);
+      this.inputManager.setScene(this.scene3d.scene);
 
       this.cameraRig = new CameraRig(this.scene3d.camera);
       this.postFX = new PostFX(this.scene3d);
@@ -220,6 +228,11 @@ export class App {
   }
 
   loadGame(gameId, level = 1) {
+    if (this.inputManager) {
+      this.inputManager.clearTargets();
+      this.inputManager.setDragHandler(null);
+    }
+
     if (this.activeGame) {
       this.activeGame.exit();
       this.activeGame = null;
@@ -566,7 +579,7 @@ export class App {
     window.__dev = {
       app: this,
       start: (gameId, level = 1) => {
-        this.start3D().then(() => {
+        return this.start3D().then(() => {
           this.loadGame(gameId, level);
         });
       },
@@ -580,6 +593,32 @@ export class App {
       showLevelMap:  () => this.levelMap?.show(),
       setRating: (skill, val) => {
         if (this.elo) this.elo.setRating(skill, val);
+      },
+      testInput: () => {
+        if (!this.inputManager) {
+          console.error('[__dev] InputManager not ready');
+          return { success: false, totalCount: 0, hitCount: 0, results: [] };
+        }
+        return this.inputManager.testInput();
+      },
+      testAllGames: async () => {
+        const gameIds = ['lumen-pond', 'terminal-hack', 'hologram-matrix', 'rotation-core', 'reflex-arena', 'anomaly-rooms'];
+        const allResults = {};
+        for (const gId of gameIds) {
+          console.log(`\n=================== Testing Game: ${gId} ===================`);
+          await this.start3D();
+          this.loadGame(gId, 1);
+          await new Promise(r => setTimeout(r, 650));
+          allResults[gId] = this.inputManager.testInput();
+        }
+        console.log('\n=================== ALL GAMES TEST COMPLETE ===================');
+        console.table(Object.entries(allResults).map(([k, v]) => ({
+          Game: k,
+          Total: v.totalCount,
+          Hits: v.hitCount,
+          Passed: v.success ? 'YES' : 'NO'
+        })));
+        return allResults;
       }
     };
   }

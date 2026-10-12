@@ -74,6 +74,10 @@ export class GameBase {
     this._listeners   = [];     // { target, event, fn } for removeEventListener
     this._tweens      = [];     // tween instances
     this._eventUnsubs = [];     // EventBus unsubscribe functions
+
+    // InputManager integration
+    this.inputManager = window.__inputManager || null;
+    this._registeredTargetIds = [];
   }
 
   /* ── Lifecycle (override in subclass) ─────────────────────── */
@@ -86,6 +90,11 @@ export class GameBase {
   build(scene, camera) {
     this.scene = scene;
     this.camera = camera;
+    this.inputManager = window.__inputManager || null;
+    if (this.inputManager) {
+      this.inputManager.setCamera(camera);
+      this.inputManager.setScene(scene);
+    }
   }
 
   /**
@@ -200,9 +209,43 @@ export class GameBase {
         if (child.parent) child.parent.remove(child);
       }
     }
+
+    // Unregister interactive targets from InputManager
+    if (this.inputManager) {
+      for (const tId of this._registeredTargetIds) {
+        this.inputManager.unregisterTarget(tId);
+      }
+      this._registeredTargetIds.length = 0;
+      this.inputManager.setDragHandler(null);
+    }
   }
 
   /* ── Helper Methods (use in subclasses) ───────────────────── */
+
+  /**
+   * Register an interactive 3D object with the unified InputManager
+   * @param {string|number} id
+   * @param {THREE.Object3D} object
+   * @param {Object} handlers - { onHover, onPress, onClick, key, hitRadius, hitShape, hitSize }
+   */
+  registerTarget(id, object, handlers = {}) {
+    if (!this.inputManager) {
+      this.inputManager = window.__inputManager || null;
+    }
+    if (this.inputManager) {
+      this.inputManager.registerTarget(id, object, handlers);
+      this._registeredTargetIds.push(id);
+    }
+    return object;
+  }
+
+  /** Create an enlarged invisible hit proxy for an object */
+  createHitProxy(object, opts = {}) {
+    if (!this.inputManager) {
+      this.inputManager = window.__inputManager || null;
+    }
+    return this.inputManager?.createHitProxy(object, opts);
+  }
 
   /** Add a Three.js object to the scene and track for disposal */
   addObject(obj) {

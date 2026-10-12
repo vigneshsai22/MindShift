@@ -300,6 +300,26 @@ export class LumenPond extends GameBase {
 
       this.addObject(padGroup);
       this.pads.push(padGroup);
+
+      // Register with unified InputManager (hit proxy + keyboard + hover/press feedback)
+      this.registerTarget(`pad_${i}`, padGroup, {
+        hitRadius: 1.4,
+        key: String(i + 1),
+        onHover: (hovered) => {
+          if (!this._inputActive || this.finished) return;
+          if (hovered) {
+            Tween.to(padGroup.position, { y: padGroup.userData.baseY + 0.18 }, 0.2, 'easeOutBack').start();
+            padGroup.userData.flower.material.emissiveIntensity = 1.3;
+          } else {
+            Tween.to(padGroup.position, { y: padGroup.userData.baseY }, 0.2, 'easeOutQuad').start();
+            padGroup.userData.flower.material.emissiveIntensity = 0.45;
+          }
+        },
+        onPress: () => {
+          if (!this._inputActive || this.paused || this.finished) return;
+          this._handlePlayerInput(i);
+        }
+      });
     }
 
     // ── Sequence Player helper ──────────────────────────────

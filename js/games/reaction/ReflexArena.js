@@ -115,8 +115,48 @@ export class ReflexArena extends GameBase {
     this.addObject(mesh);
     this.activeTargets.push(targetData);
 
+    // Register with unified InputManager (enlarged hit proxy)
+    const targetId = `drone_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    targetData.targetId = targetId;
+    this.registerTarget(targetId, mesh, {
+      hitRadius: 1.5,
+      onHover: (hovered) => {
+        if (hovered) mat.emissiveIntensity = 1.4;
+        else mat.emissiveIntensity = 0.8;
+      },
+      onPress: () => {
+        if (this.paused || this.finished) return;
+        this._hitDrone(targetData);
+      }
+    });
+
     // Pop-in tween
     Tween.to(mesh.scale, { x: 1, y: 1, z: 1 }, 0.15, 'easeOutBack').start();
+  }
+
+  _hitDrone(data) {
+    if (data.isHazard) {
+      // Inhibitory failure (clicked a No-Go hazard)
+      SFXLib.playError();
+      this.recordResponse(false);
+      EventBus.emit('hud:subtitle', { text: 'Inhibition Breach! Hazard detonated.' });
+      this._removeTarget(data);
+    } else {
+      // Valid Go target hit!
+      SFXLib.playHit();
+      this.recordResponse(true);
+      this.targetsHit++;
+
+      Tween.to(data.mesh.scale, { x: 1.6, y: 1.6, z: 1.6 }, 0.1, 'easeOutQuad')
+        .onComplete(() => this._removeTarget(data))
+        .start();
+
+      if (this.targetsHit >= this.targetQuota) {
+        SFXLib.playSuccess();
+        EventBus.emit('hud:subtitle', { text: 'Reflex quota completed. Neural latency optimal.' });
+        this.completeTrial(true, 1.0);
+      }
+    }
   }
 
   _onPointerDown(e) {
@@ -135,41 +175,18 @@ export class ReflexArena extends GameBase {
     const hits = this._raycaster.intersectObjects(meshes, false);
 
     if (hits.length > 0) {
-      const hit = hits[0].object;
-      const data = hit.userData;
-
-      if (data.isHazard) {
-        // Inhibitory failure (clicked a No-Go hazard)
-        SFXLib.playError();
-        this.recordResponse(false);
-        EventBus.emit('hud:subtitle', { text: 'Inhibition Breach! Hazard detonated.' });
-
-        // Despawn
-        this._removeTarget(data);
-      } else {
-        // Valid Go target hit!
-        SFXLib.playHit();
-        this.recordResponse(true);
-        this.targetsHit++;
-
-        Tween.to(hit.scale, { x: 1.6, y: 1.6, z: 1.6 }, 0.1, 'easeOutQuad')
-          .onComplete(() => this._removeTarget(data))
-          .start();
-
-        if (this.targetsHit >= this.targetQuota) {
-          SFXLib.playSuccess();
-          EventBus.emit('hud:subtitle', { text: 'Reflex quota completed. Neural latency optimal.' });
-          this.completeTrial(true, 1.0);
-        }
-      }
+      this._hitDrone(hits[0].object.userData);
     }
   }
 
   _removeTarget(data) {
+    if (data.targetId && this.inputManager) {
+      this.inputManager.unregisterTarget(data.targetId);
+    }
     const idx = this.activeTargets.indexOf(data);
     if (idx >= 0) this.activeTargets.splice(idx, 1);
     if (data.mesh.parent) data.mesh.parent.remove(data.mesh);
-    data.mat.dispose();
+    data.mat?.dispose();
   }
 
   hint(type) {

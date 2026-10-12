@@ -181,6 +181,23 @@ export class HologramMatrix extends GameBase {
 
       this.candGroup.add(candMesh);
       this.candidates.push(candMesh);
+
+      // Register with unified InputManager (hit proxy + keyboard + hover/press feedback)
+      this.registerTarget(`cand_${i}`, candMesh, {
+        hitRadius: 1.3,
+        key: String(i + 1),
+        onHover: (hovered) => {
+          if (hovered) {
+            mat.emissiveIntensity = 1.0;
+          } else {
+            mat.emissiveIntensity = 0.2;
+          }
+        },
+        onPress: () => {
+          if (this.paused || this.finished) return;
+          this._chooseCandidate(candMesh);
+        }
+      });
     }
 
     EventBus.emit('hud:subtitle', {
@@ -188,9 +205,37 @@ export class HologramMatrix extends GameBase {
     });
   }
 
+  _chooseCandidate(hit) {
+    const data = hit.userData;
+    if (!data) return;
+
+    if (data.isCorrect) {
+      // Correct candidate!
+      SFXLib.playSuccess();
+      Tween.to(hit.position, { x: 1.8, y: -0.6 + 2.2, z: 0 }, 0.4, 'easeInOutQuad')
+        .onComplete(() => {
+          hit.userData.mat.emissiveIntensity = 2.0;
+          EventBus.emit('hud:subtitle', { text: 'Pattern verified! Hologram matrix locked.' });
+          this.completeTrial(true, 1.0);
+        }).start();
+    } else {
+      // Wrong candidate
+      SFXLib.playError();
+      this.recordResponse(false);
+      hit.userData.mat.emissive.setHex(0xff0044);
+      hit.userData.mat.emissiveIntensity = 1.5;
+      Tween.to(hit.position, { y: -0.4 }, 0.1, 'easeOutQuad')
+        .onComplete(() => {
+          Tween.to(hit.position, { y: 0 }, 0.2).start();
+          hit.userData.mat.emissive.setHex(hit.userData.mat.color.getHex());
+          hit.userData.mat.emissiveIntensity = 0.2;
+        }).start();
+      EventBus.emit('hud:subtitle', { text: 'Relational dissonance detected.' });
+    }
+  }
+
   _onPointerDown(e) {
     if (this.paused || this.finished) return;
-
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
     const clientX = e.clientX !== undefined ? e.clientX : (e.touches?.[0]?.clientX ?? 0);
@@ -203,34 +248,7 @@ export class HologramMatrix extends GameBase {
     const hits = this._raycaster.intersectObjects(this.candidates, false);
 
     if (hits.length > 0) {
-      const hit = hits[0].object;
-      const data = hit.userData;
-
-      if (data.isCorrect) {
-        // Correct candidate!
-        SFXLib.playSuccess();
-        const targetPos = new THREE.Vector3(1.8, 1.2 - 1.8, 0); // r=2, c=2 position
-
-        Tween.to(hit.position, { x: 1.8, y: -0.6 + 2.2, z: 0 }, 0.4, 'easeInOutQuad')
-          .onComplete(() => {
-            hit.userData.mat.emissiveIntensity = 2.0;
-            EventBus.emit('hud:subtitle', { text: 'Pattern verified! Hologram matrix locked.' });
-            this.completeTrial(true, 1.0);
-          }).start();
-      } else {
-        // Wrong candidate
-        SFXLib.playError();
-        this.recordResponse(false);
-        hit.userData.mat.emissive.setHex(0xff0044);
-        hit.userData.mat.emissiveIntensity = 1.5;
-        Tween.to(hit.position, { y: -0.4 }, 0.1, 'easeOutQuad')
-          .onComplete(() => {
-            Tween.to(hit.position, { y: 0 }, 0.2).start();
-            hit.userData.mat.emissive.setHex(hit.userData.mat.color.getHex());
-            hit.userData.mat.emissiveIntensity = 0.2;
-          }).start();
-        EventBus.emit('hud:subtitle', { text: 'Relational dissonance detected.' });
-      }
+      this._chooseCandidate(hits[0].object);
     }
   }
 

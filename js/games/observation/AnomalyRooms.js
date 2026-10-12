@@ -87,24 +87,18 @@ export class AnomalyRooms extends GameBase {
       { geom: new THREE.DodecahedronGeometry(0.5), color: 0x3b82f6, type: 'poly' }
     ];
 
-    // Grid layout of 6 pedestals
-    const positions = [
-      [-3.0, 0.8, -2],
-      [-1.0, 0.8, -2],
-      [ 1.0, 0.8, -2],
-      [ 3.0, 0.8, -2],
-      [-2.0, 0.8,  1],
-      [ 0.0, 0.8,  1],
-      [ 2.0, 0.8,  1]
-    ];
-
-    const count = Math.min(positions.length, 5 + Math.min(2, Math.floor(this.level / 8)));
+    const count = Math.min(6, 4 + Math.min(2, Math.floor(this.level / 8)));
     this.anomalousIndex = Math.floor(Math.random() * count);
 
     for (let i = 0; i < count; i++) {
-      const pos = positions[i];
+      const angle = -Math.PI * 0.32 + (i / Math.max(1, count - 1)) * Math.PI * 0.64;
+      const posX = Math.sin(angle) * 4.6;
+      const posZ = -Math.cos(angle) * 3.2 + 0.8;
+      const posY = 0.8;
+
       const pGroup = new THREE.Group();
-      pGroup.position.set(pos[0], pos[1], pos[2]);
+      pGroup.position.set(posX, posY, posZ);
+      pGroup.rotation.y = -angle;
 
       // Pedestal
       const pedGeom = new THREE.CylinderGeometry(0.5, 0.6, 0.8, 16);
@@ -159,11 +153,46 @@ export class AnomalyRooms extends GameBase {
 
       this.addObject(pGroup);
       this.props.push(propData);
+
+      // Register with unified InputManager
+      this.registerTarget(`prop_${i}`, specimen, {
+        hitRadius: 1.1,
+        key: String(i + 1),
+        onHover: (hovered) => {
+          if (hovered) {
+            pMat.emissiveIntensity = 0.8;
+          } else {
+            pMat.emissiveIntensity = 0.1;
+          }
+        },
+        onPress: () => {
+          if (this.paused || this.finished) return;
+          this._selectProp(propData);
+        }
+      });
     }
 
     EventBus.emit('hud:subtitle', {
       text: 'Visual Scanner Active: Detect and report the anomalous containment pedestal.'
     });
+  }
+
+  _selectProp(selected) {
+    if (selected.isAnomaly) {
+      // Success!
+      SFXLib.playSuccess();
+      Tween.to(selected.specimen.scale, { x: 1.5, y: 1.5, z: 1.5 }, 0.3, 'easeOutBack').start();
+      selected.mat.emissive.setHex(0x00ff88);
+      selected.mat.emissiveIntensity = 2.0;
+
+      EventBus.emit('hud:subtitle', { text: 'Anomaly pinpointed! Containment secure.' });
+      this.completeTrial(true, 1.0);
+    } else {
+      // False positive
+      SFXLib.playError();
+      this.recordResponse(false);
+      EventBus.emit('hud:subtitle', { text: 'Nominal baseline specimen. Re-evaluate.' });
+    }
   }
 
   _onPointerDown(e) {
@@ -188,22 +217,7 @@ export class AnomalyRooms extends GameBase {
       }
 
       if (obj.userData && obj.userData.index !== undefined) {
-        const selected = obj.userData;
-        if (selected.isAnomaly) {
-          // Success!
-          SFXLib.playSuccess();
-          Tween.to(selected.specimen.scale, { x: 1.5, y: 1.5, z: 1.5 }, 0.3, 'easeOutBack').start();
-          selected.mat.emissive.setHex(0x00ff88);
-          selected.mat.emissiveIntensity = 2.0;
-
-          EventBus.emit('hud:subtitle', { text: 'Anomaly pinpointed! Containment secure.' });
-          this.completeTrial(true, 1.0);
-        } else {
-          // False positive
-          SFXLib.playError();
-          this.recordResponse(false);
-          EventBus.emit('hud:subtitle', { text: 'Nominal baseline specimen. Re-evaluate.' });
-        }
+        this._selectProp(obj.userData);
       }
     }
   }
