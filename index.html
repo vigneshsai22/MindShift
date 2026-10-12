@@ -3,23 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="MindShift – An adaptive 2D multimedia intelligence game that trains cognitive skills through dynamic challenges.">
-  <title>MindShift – Adaptive Intelligence Game</title>
+  <meta name="description" content="MindShift 3D – An adaptive 3D multimedia cognitive gaming system that evaluates and enhances cognitive skills through immersive 3D environments across six skill wings.">
+  <title>MindShift 3D – Adaptive Cognitive Research Facility</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Chart.js — local vendor -->
+  <script src="js/vendor/chart.umd.min.js"></script>
 
-  <!-- Three.js r165 importmap — pins exact version, no build step needed -->
+  <!-- Three.js r165 importmap — local vendor, instant load offline & online -->
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      "three": "./js/vendor/three/three.module.js",
+      "three/addons/postprocessing/": "./js/vendor/three/",
+      "three/addons/shaders/": "./js/vendor/three/",
+      "three/addons/": "./js/vendor/three/"
     }
   }
   </script>
@@ -59,8 +61,8 @@
             </defs>
           </svg>
         </div>
-        <h1 class="splash-title">MindShift</h1>
-        <p class="splash-sub">Adaptive Intelligence Game</p>
+        <h1 class="splash-title">MindShift 3D</h1>
+        <p class="splash-sub">Adaptive Cognitive Research Facility</p>
       </div>
       <div class="splash-loader">
         <div class="loader-bar-wrap">
@@ -72,14 +74,14 @@
   </section>
 
   <!-- ══════════════════════════════════════════════ -->
-  <!-- MAIN MENU                                       -->
+  <!-- MAIN MENU / MINDSHIFT 3D HOME SCREEN            -->
   <!-- ══════════════════════════════════════════════ -->
   <section class="screen" id="main-menu" aria-label="Main menu">
     <canvas id="menu-canvas"></canvas>
     <div class="menu-content">
       <header class="menu-header">
         <div class="menu-logo">
-          <svg width="40" height="40" viewBox="0 0 80 80" fill="none">
+          <svg width="44" height="44" viewBox="0 0 80 80" fill="none">
             <circle cx="40" cy="40" r="38" stroke="url(#mg1)" stroke-width="3" fill="none"/>
             <path d="M25 40 Q30 25 40 28 Q50 25 55 40 Q60 55 40 58 Q20 55 25 40Z" fill="url(#mg2)" opacity="0.9"/>
             <defs>
@@ -87,9 +89,9 @@
               <linearGradient id="mg2" x1="0" y1="0" x2="80" y2="80"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
             </defs>
           </svg>
-          <span>MindShift</span>
+          <span>MindShift 3D</span>
         </div>
-        <p class="menu-tagline">Train your mind. Track your growth.</p>
+        <p class="menu-tagline">Adaptive Cognitive Research Facility</p>
       </header>
 
       <div class="profile-section">
@@ -102,26 +104,43 @@
         </button>
       </div>
 
-      <div class="menu-actions" id="menu-actions">
-        <button class="btn-primary btn-play" id="btn-play" disabled>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          Play Game
+      <div class="home-cta-container">
+        <!-- Big button: Enter the Mind Lab (Assessment Mode) -->
+        <button class="btn-home-big btn-enter-lab" id="btn-enter-lab">
+          <div class="btn-home-icon">🌐</div>
+          <div class="btn-home-text">
+            <span class="btn-home-title">Enter the Mind Lab</span>
+            <span class="btn-home-sub">Assessment Mode · AI Director Paces Next Challenge</span>
+          </div>
+          <div class="btn-home-arrow">▶</div>
         </button>
-        <div class="btn-row">
-          <button class="btn-secondary" id="btn-history" disabled>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            History
-          </button>
-          <button class="btn-secondary" id="btn-achievements" disabled>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
-            Achievements
-          </button>
-        </div>
-        <!-- 3D Mind Lab button — launches immersive Three.js facility -->
-        <button class="btn-3d" id="btn-3d-lab">
-          🔬 3D Mind Lab Research Facility
+
+        <!-- Big button: Game Catalogue (Free Practice) -->
+        <button class="btn-home-big btn-game-catalogue" id="btn-game-catalogue">
+          <div class="btn-home-icon">🎮</div>
+          <div class="btn-home-text">
+            <span class="btn-home-title">Game Catalogue</span>
+            <span class="btn-home-sub">Free Practice · Explore 30 Challenges Across 6 Wings</span>
+          </div>
+          <div class="btn-home-arrow">📑</div>
+        </button>
+
+        <!-- Button: Performance Report -->
+        <button class="btn-home-secondary" id="btn-performance-report" title="Play a game first">
+          <span class="btn-sec-icon">📊</span>
+          <span class="btn-sec-title">Performance Report</span>
+        </button>
+
+        <!-- Small Legacy modes link -->
+        <button class="link-legacy-modes" id="link-legacy-modes">
+          <span>📜 Legacy modes (Classic, IQ &amp; Reasoning, Mixed)</span>
         </button>
       </div>
+
+      <!-- Small key hints footer -->
+      <footer class="home-key-hints" id="home-key-hints">
+        Shortcuts: <kbd>Tab</kbd> Catalogue &nbsp;|&nbsp; <kbd>M</kbd> Level Map &nbsp;|&nbsp; <kbd>F3</kbd> Adaptive Telemetry &nbsp;|&nbsp; <kbd>Esc</kbd> Pause
+      </footer>
     </div>
   </section>
 
@@ -164,10 +183,10 @@
   <section class="screen" id="game-mode-select" aria-label="Game mode selection">
     <canvas id="mode-canvas"></canvas>
     <div class="mode-content">
-      <button class="btn-back" id="mode-back">← Back</button>
+      <button class="btn-back" id="mode-back">← Back to MindShift 3D</button>
       <header class="mode-header">
-        <h2>Choose Your Challenge</h2>
-        <p class="mode-tagline">Each mode targets different cognitive skills</p>
+        <h2>Legacy Game Modes</h2>
+        <p class="mode-tagline">Original 2D cognitive challenges preserved for comparative benchmarking</p>
       </header>
       <div class="mode-grid" id="mode-grid">
 
@@ -189,7 +208,7 @@
 
         <button class="mode-card mode-iq-card" id="mode-iq" data-mode="iq">
           <div class="mode-card-bg"></div>
-          <span class="mode-new-badge">NEW</span>
+          <span class="mode-new-badge">2D</span>
           <div class="mode-card-content">
             <span class="mode-icon">🔬</span>
             <h3 class="mode-name">IQ &amp; Reasoning</h3>
@@ -209,10 +228,10 @@
           <div class="mode-card-content">
             <span class="mode-icon">⚡</span>
             <h3 class="mode-name">Mixed Mode</h3>
-            <p class="mode-desc">The ultimate cognitive workout — all 13 challenge types combined for maximum mental stimulation and adaptivity</p>
+            <p class="mode-desc">The 2D cognitive workout — all 13 challenge types combined for mental stimulation and adaptivity</p>
             <div class="mode-tags">
               <span class="mode-tag">13 Types</span>
-              <span class="mode-tag">🏆 Ultimate</span>
+              <span class="mode-tag">🏆 2D Suite</span>
               <span class="mode-tag">🎯 All Skills</span>
             </div>
             <div class="mode-count">All 13 Challenge Types</div>
@@ -222,18 +241,18 @@
 
         <button class="mode-card mode-3d-card" id="mode-3d" data-mode="3d">
           <div class="mode-card-bg"></div>
-          <span class="mode-new-badge" style="background:linear-gradient(135deg,#06b6d4,#7c3aed)">3D LAB</span>
+          <span class="mode-new-badge" style="background:linear-gradient(135deg,#06b6d4,#7c3aed)">PRIMARY</span>
           <div class="mode-card-content">
             <span class="mode-icon">🌐</span>
-            <h3 class="mode-name">3D Mind Lab Facility</h3>
-            <p class="mode-desc">First-person 3D research facility powered by Three.js. Explore 6 interactive research labs with holographic AI guide ARIA and dynamic 3D brain mapping.</p>
+            <h3 class="mode-name">MindShift 3D Facility</h3>
+            <p class="mode-desc">Return to the primary MindShift 3D system: 6 interactive wings, 30 challenges, and adaptive Elo director.</p>
             <div class="mode-tags">
               <span class="mode-tag">🎮 3D World</span>
               <span class="mode-tag">🤖 AI ARIA</span>
               <span class="mode-tag">🧠 3D Brain</span>
             </div>
-            <div class="mode-count">6 Immersive 3D Labs</div>
-            <div class="mode-play-btn" style="background:linear-gradient(135deg,#06b6d4,#7c3aed)">Enter 3D Lab →</div>
+            <div class="mode-count">30 3D Challenges</div>
+            <div class="mode-play-btn" style="background:linear-gradient(135deg,#06b6d4,#7c3aed)">Return to 3D →</div>
           </div>
         </button>
 
@@ -334,6 +353,7 @@
 
     <!-- Bottom controls -->
     <div id="game-controls">
+      <button class="btn-ghost btn-sm" id="btn-game-back">← Exit Game</button>
       <button class="btn-ghost btn-sm" id="btn-hint">💡 Use Hint</button>
       <button class="btn-ghost btn-sm" id="btn-audio-toggle">🔊 Audio</button>
     </div>
@@ -363,7 +383,10 @@
       </div>
       <div class="streak-message" id="streak-message"></div>
       <div class="adaptive-message" id="adaptive-message"></div>
-      <button class="btn-primary" id="btn-next-challenge">Next Challenge →</button>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button class="btn-ghost" id="btn-result-menu">← Exit to Menu</button>
+        <button class="btn-primary" id="btn-next-challenge">Next Challenge →</button>
+      </div>
     </div>
   </section>
 
@@ -373,6 +396,7 @@
   <section class="screen" id="analytics-dashboard" aria-label="Performance analytics">
     <div class="analytics-scroll">
       <header class="analytics-header">
+        <button class="btn-back" id="analytics-back" style="margin-bottom:12px;">← Back to Menu</button>
         <div class="analytics-title-wrap">
           <h2>Session Report</h2>
           <p class="analytics-sub" id="analytics-player-name"></p>
@@ -533,9 +557,9 @@
 </div><!-- /#app -->
 
 <!-- 3D canvas — hidden until 3D mode launches -->
-<canvas id="three-canvas" style="display:none;position:fixed;inset:0;width:100vw;height:100vh;z-index:300"></canvas>
+<canvas id="three-canvas" style="display:none;position:fixed;inset:0;width:100vw;height:100vh;z-index:1"></canvas>
 
 <!-- ES6 Module Entry Point -->
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/main.js?v=20261012"></script>
 </body>
 </html>

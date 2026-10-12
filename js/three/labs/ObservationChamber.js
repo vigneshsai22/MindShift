@@ -1,193 +1,253 @@
-﻿/* ═══════════════════════════════════════════════════════════════
-   ObservationChamber.js
-   Two near-identical 3D scenes side by side; N differences
-   (colour/position/missing); player clicks the anomalies.
+/* ═══════════════════════════════════════════════════════════════
+   ObservationChamber.js — Sector 4: Anomaly Chamber (Observation)
+   Features:
+   - Twin adjacent research chambers (Left = Baseline, Right = Candidate)
+   - Dynamic differences: Color, Position, Rotation, or Missing Object
+   - Animated Security Laser Scanner sweeping horizontally
+   - Sector Climax / Boss Trial: Dynamic anomalies spawn mid-trial while scanner accelerates
+   - Pointer-lock center raycasting & click fallback
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
 import { LabBase } from './LabBase.js';
+import { EventBus } from '../../core/EventBus.js';
 
-const OBJECT_TYPES = ['box','sphere','cylinder','torus','cone'];
+const OBJECT_TYPES = ['box', 'sphere', 'cylinder', 'torus', 'cone'];
 const PALETTE = [0x4488ff, 0xff4488, 0x44ff88, 0xffcc00, 0xcc44ff, 0xff8800];
 
 function makeObj(type, color) {
-  const geo = type === 'box' ? new THREE.BoxGeometry(0.6,0.6,0.6)
-            : type === 'sphere' ? new THREE.SphereGeometry(0.35,12,12)
-            : type === 'cylinder' ? new THREE.CylinderGeometry(0.25,0.25,0.7,10)
-            : type === 'torus' ? new THREE.TorusGeometry(0.28,0.1,10,20)
-            : new THREE.ConeGeometry(0.35,0.7,10);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness:0.3, metalness:0.4,
-    emissive: new THREE.Color(color).multiplyScalar(0.15) });
+  const geo = type === 'box' ? new THREE.BoxGeometry(0.65, 0.65, 0.65)
+            : type === 'sphere' ? new THREE.SphereGeometry(0.38, 16, 16)
+            : type === 'cylinder' ? new THREE.CylinderGeometry(0.28, 0.28, 0.8, 16)
+            : type === 'torus' ? new THREE.TorusGeometry(0.32, 0.12, 12, 24)
+            : new THREE.ConeGeometry(0.38, 0.8, 16);
+  const mat = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.35,
+    metalness: 0.65,
+    emissive: new THREE.Color(color).multiplyScalar(0.25)
+  });
   return new THREE.Mesh(geo, mat);
 }
 
 export class ObservationChamber extends LabBase {
   constructor(ctx) {
     super(ctx);
-    this._category   = 'visual';
-    this._leftObjs   = [];
-    this._rightObjs  = [];
-    this._diffIndices = []; // which right-side objects are different
-    this._found       = [];
-    this._clickHandler = null;
+    this._category    = 'observation';
+    this._title       = 'SECTOR 4: ANOMALY CHAMBER';
+    this._leftObjs    = [];
+    this._rightObjs   = [];
+    this._diffIndices = [];
+    this._foundCount  = 0;
     this._numDiffs    = 2;
+    this._isBoss      = false;
+    this._scannerTime = 0;
+    this._scannerMesh = null;
+
+    this._onInteract    = this._onInteract.bind(this);
+    this._onCanvasClick = this._onCanvasClick.bind(this);
   }
 
   _buildScene() {
     this._group.position.set(0, 0, -15);
 
-    // Divider wall in center
-    const div = new THREE.Mesh(new THREE.BoxGeometry(0.15, 5, 12),
-      new THREE.MeshStandardMaterial({ color:0x0a1a2a, emissive:0x002244, emissiveIntensity:0.3 }));
-    div.position.set(0, 2.5, -5);
+    // Center divider partition
+    const divMat = new THREE.MeshStandardMaterial({
+      color: 0x091424,
+      emissive: 0x002244,
+      emissiveIntensity: 0.4
+    });
+    const div = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5, 14), divMat);
+    div.position.set(0, 2.5, -6);
     this._group.add(div);
 
-    // Labels
-    ['LEFT SCENE', 'RIGHT SCENE'].forEach((label, idx) => {
-      const cv = document.createElement('canvas');
-      cv.width = 512; cv.height = 80;
-      const ctx = cv.getContext('2d');
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,512,80);
-      ctx.fillStyle = '#44aaff';
-      ctx.font = 'bold 36px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(label, 256, 55);
-      const tex = new THREE.CanvasTexture(cv);
-      const pl = new THREE.Mesh(new THREE.PlaneGeometry(4.5,0.7),
-        new THREE.MeshStandardMaterial({ map:tex, emissive:0x001122, emissiveIntensity:0.4 }));
-      pl.position.set(idx === 0 ? -3.5 : 3.5, 5, -8.4);
-      this._group.add(pl);
+    // Animated Red Security Scanner Laser
+    const scanGeo = new THREE.PlaneGeometry(12, 0.08);
+    const scanMat = new THREE.MeshBasicMaterial({
+      color: 0xff0044,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85
     });
-
-    // Overhead lights
-    [-3.5, 3.5].forEach(x => {
-      const l = new THREE.PointLight(0x4488ff, 1.2, 15);
-      l.position.set(x, 5, -5);
-      this._group.add(l);
-    });
+    this._scannerMesh = new THREE.Mesh(scanGeo, scanMat);
+    this._scannerMesh.rotation.x = Math.PI / 2;
+    this._scannerMesh.position.set(0, 1.8, -6);
+    this._group.add(this._scannerMesh);
   }
 
-  _onEnter(diff) {
-    this._clearObjs();
-    this._numDiffs = 1 + diff;
-    this._found    = [];
-    this._diffIndices = [];
+  _onEnter(params) {
+    this._isBoss = !!params.isBoss;
+    this._clearEntities();
 
-    // Generate 6-8 objects on the left
-    const count = 6 + Math.floor(diff / 2);
-    const specs  = [];
+    this._numDiffs = params.differencesCount || (this._isBoss ? 4 : (this._diff >= 1400 ? 3 : 2));
+    this._foundCount = 0;
+    this._diffIndices = [];
+    this._scannerTime = 0;
+
+    const count = 8;
+    const specs = [];
     for (let i = 0; i < count; i++) {
       specs.push({
         type:  OBJECT_TYPES[Math.floor(Math.random() * OBJECT_TYPES.length)],
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
         pos:   new THREE.Vector3(
-          (Math.random() - 0.5) * 5,
-          0.5 + Math.random() * 1.5,
-          -4 - Math.random() * 5
+          (Math.random() - 0.5) * 4.2,
+          0.6 + Math.random() * 1.6,
+          -3 - Math.random() * 5.5
         ),
+        rotY:  Math.random() * Math.PI * 2
       });
     }
 
-    // Build left side
+    // Build Left Baseline Scene
     specs.forEach((spec, i) => {
-      const m = makeObj(spec.type, spec.color);
-      m.position.copy(spec.pos).add(new THREE.Vector3(-3.5, 0, 0));
-      this._group.add(m);
-      this._leftObjs.push(m);
+      const leftM = makeObj(spec.type, spec.color);
+      leftM.position.copy(spec.pos).add(new THREE.Vector3(-3.4, 0, 0));
+      leftM.rotation.y = spec.rotY;
+      this._group.add(leftM);
+      this._leftObjs.push(leftM);
     });
 
-    // Determine which will differ
-    const pool = [...Array(count).keys()];
+    // Select which indices contain anomalies
+    const pool = Array.from({ length: count }, (_, i) => i);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     this._diffIndices = pool.slice(0, this._numDiffs);
 
-    // Build right side (with differences)
+    // Build Right Candidate Scene
     specs.forEach((spec, i) => {
-      const isDiff = this._diffIndices.includes(i);
-      let type = spec.type;
       let color = spec.color;
+      let pos = spec.pos.clone().add(new THREE.Vector3(3.4, 0, 0));
+      let rotY = spec.rotY;
+      const isDiff = this._diffIndices.includes(i);
+
       if (isDiff) {
-        // Change color or type
-        if (Math.random() < 0.5) color = PALETTE[(PALETTE.indexOf(color) + 1) % PALETTE.length];
-        else type = OBJECT_TYPES[(OBJECT_TYPES.indexOf(type) + 1) % OBJECT_TYPES.length];
+        const diffType = Math.floor(Math.random() * 3);
+        if (diffType === 0) {
+          // Color anomaly
+          color = PALETTE[(PALETTE.indexOf(color) + 2) % PALETTE.length];
+        } else if (diffType === 1) {
+          // Position offset
+          pos.y += 0.85;
+        } else {
+          // Rotation anomaly
+          rotY += Math.PI * 0.6;
+        }
       }
-      const m = makeObj(type, color);
-      m.position.copy(spec.pos).add(new THREE.Vector3(3.5, 0, 0));
-      m.userData = { diffIdx: i, isDiff };
-      this._group.add(m);
-      this._rightObjs.push(m);
+
+      const rightM = makeObj(spec.type, color);
+      rightM.position.copy(pos);
+      rightM.rotation.y = rotY;
+      rightM.userData = { objIdx: i, isAnomaly: isDiff, found: false };
+      this._group.add(rightM);
+      this._rightObjs.push(rightM);
     });
 
-    this.aria?.speak(`Spot the ${this._numDiffs} differences between the two scenes. Click each anomaly on the right.`, 'instruction');
-    this._clickHandler = (e) => this._onCanvasClick(e);
-    this.scene3d.renderer.domElement.addEventListener('click', this._clickHandler);
+    if (this._isBoss) {
+      this.aria?.speak(`Sector 4 Boss: Security Scanner Overdrive. Discover all ${this._numDiffs} anomalies before the beam locks down!`, 'urgent');
+      this.spatialAudio?.playStinger('boss_start');
+    } else {
+      this.aria?.speak(`Inspect the twin chambers. Locate and click all ${this._numDiffs} anomalies on the right side.`, 'instruction');
+    }
+
+    this._bindControls();
+  }
+
+  _bindControls() {
+    EventBus.on('player:interact', this._onInteract);
+    this.scene3d.renderer.domElement.addEventListener('click', this._onCanvasClick);
+  }
+
+  _unbindControls() {
+    EventBus.off('player:interact', this._onInteract);
+    this.scene3d.renderer.domElement.removeEventListener('click', this._onCanvasClick);
+  }
+
+  _onInteract() {
+    const hits = this.raycastCenter(this._rightObjs);
+    if (hits.length > 0) this._checkClickedObject(hits[0].object);
   }
 
   _onCanvasClick(e) {
-    const rect  = this.scene3d.renderer.domElement.getBoundingClientRect();
+    if (document.pointerLockElement) {
+      const hits = this.raycastCenter(this._rightObjs);
+      if (hits.length > 0) this._checkClickedObject(hits[0].object);
+      return;
+    }
+
+    const rect = this.scene3d.renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
       -((e.clientY - rect.top) / rect.height) * 2 + 1
     );
-    const ray  = new THREE.Raycaster();
-    ray.setFromCamera(mouse, this.scene3d.camera);
-    const hits = ray.intersectObjects(this._rightObjs);
-    if (!hits.length) return;
+    this._raycaster.setFromCamera(mouse, this.camera);
+    const hits = this._raycaster.intersectObjects(this._rightObjs);
+    if (hits.length > 0) this._checkClickedObject(hits[0].object);
+  }
 
-    const hit = hits[0].object;
-    const idx = hit.userData.diffIdx;
-    if (this._found.includes(idx)) return;
+  _checkClickedObject(mesh) {
+    if (mesh.userData.found) return;
     this._attempts++;
 
-    if (hit.userData.isDiff) {
-      this._found.push(idx);
-      hit.material.emissive.setHex(0x00ff88);
-      hit.material.emissiveIntensity = 2.5;
-      this.spatialAudio?.playTone(520 + this._found.length * 80, 0.18, 'sine', 0.3);
+    if (mesh.userData.isAnomaly) {
+      mesh.userData.found = true;
+      this._foundCount++;
+      mesh.material.emissive.setHex(0x00ff88);
+      mesh.material.emissiveIntensity = 3.0;
+      this.spatialAudio?.playTone(587.33, 0.2, 'sine', 0.28);
+      EventBus.emit('juice:popup', { text: `ANOMALY PURGED (${this._foundCount}/${this._numDiffs})`, color: '#00ff88' });
 
-      if (this._found.length >= this._numDiffs) {
-        this.scene3d.renderer.domElement.removeEventListener('click', this._clickHandler);
-        setTimeout(() => this._complete(true, this._attempts), 500);
+      if (this._foundCount >= this._numDiffs) {
+        this._unbindControls();
+        const winTimer = setTimeout(() => this._complete(true, { isBoss: this._isBoss }), 600);
+        this._timeouts.add(winTimer);
       }
     } else {
-      // Wrong click — flash red
-      const origEmissive = hit.material.emissive.getHex();
-      hit.material.emissive.setHex(0xff2200);
-      hit.material.emissiveIntensity = 2;
-      this.spatialAudio?.playTone(110, 0.2, 'sawtooth', 0.2);
-      setTimeout(() => {
-        hit.material.emissive.setHex(origEmissive);
-        hit.material.emissiveIntensity = 0.15;
-      }, 400);
+      // False positive penalty
+      this.flashMesh(mesh, 0xff2200, 300);
+      this.spatialAudio?.playTone(130.81, 0.25, 'sawtooth', 0.25);
+      EventBus.emit('juice:popup', { text: 'NO ANOMALY DETECTED', color: '#ff3344' });
     }
   }
 
-  _clearObjs() {
-    [...this._leftObjs, ...this._rightObjs].forEach(m => {
-      m.geometry?.dispose(); m.material?.dispose(); this._group.remove(m);
-    });
-    this._leftObjs = []; this._rightObjs = [];
-  }
-
-  _onExit() {
-    if (this._clickHandler) {
-      this.scene3d.renderer.domElement.removeEventListener('click', this._clickHandler);
-      this._clickHandler = null;
+  _render(delta) {
+    // Security scanner sweep animation
+    const sweepSpeed = this._isBoss ? 2.5 : 1.2;
+    this._scannerTime += delta * sweepSpeed;
+    if (this._scannerMesh) {
+      this._scannerMesh.position.z = -6 + Math.sin(this._scannerTime) * 4.5;
     }
-    this._clearObjs();
   }
 
   _giveHint() {
-    // Pulse one un-found difference
-    const remaining = this._diffIndices.filter(i => !this._found.includes(i));
-    if (!remaining.length) return;
-    const target = this._rightObjs.find(m => m.userData.diffIdx === remaining[0] && m.userData.isDiff);
-    if (!target) return;
-    const orig = target.material.emissiveIntensity;
-    target.material.emissiveIntensity = 3;
-    setTimeout(() => { target.material.emissiveIntensity = orig; }, 800);
+    // Reveal one unfound anomaly with a quick ping
+    const unfound = this._rightObjs.find(o => o.userData.isAnomaly && !o.userData.found);
+    if (unfound) {
+      this.flashMesh(unfound, 0xfbbf24, 700);
+      EventBus.emit('juice:popup', { text: 'ANOMALY HIGHLIGHTED', color: '#fbbf24' });
+    }
+  }
+
+  _clearEntities() {
+    this._leftObjs.forEach(m => {
+      this._group.remove(m);
+      m.geometry.dispose();
+      m.material.dispose();
+    });
+    this._leftObjs = [];
+
+    this._rightObjs.forEach(m => {
+      this._group.remove(m);
+      m.geometry.dispose();
+      m.material.dispose();
+    });
+    this._rightObjs = [];
+  }
+
+  _onExit() {
+    this._unbindControls();
+    this._clearEntities();
   }
 }

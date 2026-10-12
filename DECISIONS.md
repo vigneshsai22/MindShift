@@ -1,0 +1,25 @@
+# Architectural Decisions Log
+
+- Decision: Restructure to 3D-first architecture while preserving existing 2D classic mode as legacy fallback.
+- Decision: Implement App.js as master orchestrator connecting UI overlays, 3D scenes, audio engine, and adaptive loop.
+- Decision: Standardize all games on GameBase contract reporting solely through 'trial:complete' EventBus events.
+- Decision: Map difficulty linearly D(level) = 600 + 30*(level-1), spanning 600 to 1470 across 30 levels.
+- Decision: Synthesize all sound effects dynamically via Web Audio API SFXLib without external audio file dependencies.
+- Decision: Deliver Tier 1 games (Lumen Pond, Terminal Hack, Anomaly Rooms, Hologram Matrix, Reflex Arena, Rotation Core) with complete multi-tier procedural depth.
+- Decision: Implement 6 distinct cognitive facility wings (Memory, Logic, Observation, Pattern, Reaction, Spatial) accessible via Atrium hub and Catalogue Terminal.
+- Decision: Use ParticleFX for lightweight burst and shockwave effects without external particle libraries.
+- Decision: Provide unified ResultScreen3D showing stars, Elo rating change, par time, and adaptive feedback.
+- Decision: Integrate developer API on window.__dev supporting autoPlay, direct level jumps, and rating overrides.
+- Decision: Provide dual-mode bootstrap allowing URL query parameters (?3d=1, ?game=...) to directly launch 3D challenges.
+- Decision: Set MindShift 3D Home Screen as the default entry point on http://localhost:8080/ without requiring query parameters.
+- Decision: Provide Assessment Mode ('Enter the Mind Lab') and Free Practice ('Game Catalogue') as primary home CTAs.
+- Decision: Retain original 2D challenges as 'Legacy modes' reachable via dedicated link and ?legacy=1 parameter.
+- Decision: Audit all 30 games in games.json with honest 'status' fields (6 playable with procedural levels 1-30, 24 card-only).
+- Decision: Wire CatalogueTerminal cards directly to LevelMap for level selection before launching 3D challenge.
+- Decision: Fix critical CSS bug: .catalogue-overlay and .level-map-overlay had display:flex as default; changed to display:none with .visible { display:flex } so overlays start hidden.
+- Decision: Add toggle() method to LevelMap to support M-key shortcut binding that calls levelMap.toggle().
+- Decision: Update page title and meta description to "MindShift 3D – Adaptive Cognitive Research Facility" to match submitted abstract and project branding.
+- Decision: Vendor Three.js (r165), PostFX addons, and Chart.js locally in js/vendor/ to eliminate CDN network latency, connection timeouts, and enable instant offline play.
+- Decision: Fix relative module paths in JuiceFX.js (../../core/ instead of ../core/).
+- Decision: Add async readiness check in MainMenu buttons to ensure robust initialization and user feedback.
+- Decision: Add uniform Back navigation buttons to every page and overlay (HUD3D top bar, CatalogueTerminal header, ResultScreen3D actions, DifficultySelect, GameScreen controls, ResultsScreen, and AnalyticsDashboard header) allowing users to cleanly return to their previous screen.

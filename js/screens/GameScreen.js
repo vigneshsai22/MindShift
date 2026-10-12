@@ -47,6 +47,12 @@ export class GameScreen {
       const muted = this.engine.audio.toggle();
       audioBtn.textContent = muted ? '🔇 Audio' : '🔊 Audio';
     };
+    const backBtn = document.getElementById('btn-game-back');
+    if (backBtn) backBtn.onclick = () => {
+      this.engine.audio?.playClick();
+      this.hide();
+      this.engine.navigate('difficulty-select');
+    };
 
     // Start ambient music
     this.engine.audio.startAmbient();

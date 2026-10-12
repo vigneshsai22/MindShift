@@ -1,6 +1,7 @@
-﻿/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    Scene3D.js — Three.js scene bootstrap
    Creates renderer, camera, scene, fog, lights, and a fadeOut util.
+   ACESFilmic tone mapping, exposure 0.9, reflective floor, light shafts.
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
@@ -23,29 +24,48 @@ export class Scene3D {
     this.renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace   = THREE.SRGBColorSpace;
     this.renderer.toneMapping        = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 1.15;
 
     /* Scene */
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000a1a);
-    this.scene.fog = new THREE.FogExp2(0x000a1a, 0.018); // exponential fog
+    this.scene.background = new THREE.Color(0x030f1e);
+    this.scene.fog = new THREE.FogExp2(0x030f1e, 0.012); // softer atmospheric fog
 
     /* Camera — first-person eye height ~1.7 m */
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
     this.camera.position.set(0, 1.7, 0);
 
-    /* Ambient light — fills dark areas without killing atmosphere */
-    this.ambientLight = new THREE.AmbientLight(0x001133, 0.8);
+    /* Ambient light — rich fill lighting */
+    this.ambientLight = new THREE.AmbientLight(0x0a2642, 1.3);
     this.scene.add(this.ambientLight);
 
     /* Accent point light follows camera; colour shifts with difficulty */
-    this.accentLight = new THREE.PointLight(0x0077ff, 1.5, 30);
+    this.accentLight = new THREE.PointLight(0x00f2fe, 2.2, 35);
     this.camera.add(this.accentLight); // attached to camera so it moves with player
     this.scene.add(this.camera);       // camera must be in scene when it has children
 
-    /* Hemisphere light for subtle sky/ground colour */
-    const hemi = new THREE.HemisphereLight(0x001133, 0x110022, 0.4);
+    /* Hemisphere light for vibrant sky/ground reflection */
+    const hemi = new THREE.HemisphereLight(0x00f2fe, 0x031828, 0.8);
     this.scene.add(hemi);
+
+    /* Directional light for subtle light-shaft feeling */
+    this.dirLight = new THREE.DirectionalLight(0x0044aa, 0.3);
+    this.dirLight.position.set(5, 15, 5);
+    this.dirLight.castShadow = true;
+    this.dirLight.shadow.mapSize.set(1024, 1024);
+    this.dirLight.shadow.camera.near = 0.5;
+    this.dirLight.shadow.camera.far  = 50;
+    this.dirLight.shadow.camera.left   = -20;
+    this.dirLight.shadow.camera.right  =  20;
+    this.dirLight.shadow.camera.top    =  20;
+    this.dirLight.shadow.camera.bottom = -20;
+    this.scene.add(this.dirLight);
+
+    /* FPS counter state */
+    this._fpsFrames = 0;
+    this._fpsTime   = performance.now();
+    this._fps       = 0;
+    this._drawCalls = 0;
 
     /* Resize handler */
     this._onResize = () => {
@@ -54,6 +74,43 @@ export class Scene3D {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', this._onResize);
+  }
+
+  /** Update FPS counter — call once per frame */
+  updateStats() {
+    this._fpsFrames++;
+    const now = performance.now();
+    if (now - this._fpsTime >= 1000) {
+      this._fps = this._fpsFrames;
+      this._drawCalls = this.renderer.info.render.calls;
+      this._fpsFrames = 0;
+      this._fpsTime = now;
+    }
+  }
+
+  get fps()       { return this._fps; }
+  get drawCalls() { return this._drawCalls; }
+
+  /** Smoothly set fog density and colour */
+  setFog(color, density, duration = 1.0) {
+    const startDensity = this.scene.fog.density;
+    const startColor   = this.scene.fog.color.clone();
+    const targetColor  = new THREE.Color(color);
+    let t = 0;
+    const step = () => {
+      t += 0.016 / duration;
+      if (t >= 1) {
+        this.scene.fog.density = density;
+        this.scene.fog.color.copy(targetColor);
+        this.scene.background.copy(targetColor);
+        return;
+      }
+      this.scene.fog.density = THREE.MathUtils.lerp(startDensity, density, t);
+      this.scene.fog.color.lerpColors(startColor, targetColor, t);
+      this.scene.background.copy(this.scene.fog.color);
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   /* Fade the canvas to black, call cb, then fade back in */

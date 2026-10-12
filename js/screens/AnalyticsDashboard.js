@@ -84,8 +84,10 @@ export class AnalyticsDashboard {
     // Actions
     const playAgain = document.getElementById('btn-play-again');
     const backMenu  = document.getElementById('btn-back-menu');
+    const anBack    = document.getElementById('analytics-back');
     if (playAgain) playAgain.onclick = () => { this.hide(); this.engine.navigate('game-mode-select'); };
     if (backMenu)  backMenu.onclick  = () => { this.hide(); this.engine.navigate('main-menu'); };
+    if (anBack)    anBack.onclick    = () => { this.hide(); this.engine.navigate('main-menu'); };
   }
 
   hide() {

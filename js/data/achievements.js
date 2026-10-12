@@ -1,119 +1,127 @@
-/* ═══════════════════════════════════════════════
-   MindShift — Achievement Definitions
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   achievements.js — 12 Comprehensive Cognitive Achievements
+   ═══════════════════════════════════════════════════════════════ */
 
 export const ACHIEVEMENTS = [
   {
+    id:    'first_game',
+    icon:  '🎮',
+    name:  'First Steps',
+    desc:  'Complete your very first cognitive benchmark session.',
+    rarity:'bronze'
+  },
+  {
+    id:    'improver',
+    icon:  '📈',
+    name:  'Adaptive Growth',
+    desc:  'Score higher than your previous run record.',
+    rarity:'bronze'
+  },
+  {
     id:    'fastest_solver',
     icon:  '⚡',
-    name:  'Fastest Solver',
-    desc:  'Complete a Reaction challenge in under 350ms',
-    rarity:'gold'
-  },
-  {
-    id:    'memory_master',
-    icon:  '🧠',
-    name:  'Memory Master',
-    desc:  'Perfect score on a Memory challenge at Hard or Expert',
-    rarity:'gold'
-  },
-  {
-    id:    'pattern_expert',
-    icon:  '🔮',
-    name:  'Pattern Expert',
-    desc:  'Answer 4 consecutive Pattern challenges correctly',
-    rarity:'silver'
-  },
-  {
-    id:    'perfect_round',
-    icon:  '⭐',
-    name:  'Perfect Round',
-    desc:  '100% accuracy in a full game session',
-    rarity:'gold'
-  },
-  {
-    id:    'on_fire',
-    icon:  '🔥',
-    name:  'On Fire',
-    desc:  'Achieve a 7× answer streak',
+    name:  'Sub-Millisecond Reflex',
+    desc:  'Eliminate a Reaction target in under 350ms.',
     rarity:'silver'
   },
   {
     id:    'audiophile',
     icon:  '🎵',
-    name:  'Audiophile',
-    desc:  'Perfect score on an Audio challenge',
+    name:  'Harmonic Resonance',
+    desc:  'Achieve 100% accuracy in the Resonance Tunnel sector.',
     rarity:'silver'
   },
   {
-    id:    'improver',
-    icon:  '📈',
-    name:  'Improver',
-    desc:  'Score higher than your previous best session',
-    rarity:'bronze'
+    id:    'pattern_expert',
+    icon:  '🔮',
+    name:  'Invariant Seeker',
+    desc:  'Solve 4 consecutive Hologram Assembly pattern trials without error.',
+    rarity:'silver'
   },
   {
-    id:    'first_game',
-    icon:  '🎮',
-    name:  'First Steps',
-    desc:  'Complete your very first game session',
-    rarity:'bronze'
+    id:    'anomaly_purger',
+    icon:  '🔍',
+    name:  'Forensic Vision',
+    desc:  'Discover all anomalies in Anomaly Chamber before scanner sweep.',
+    rarity:'silver'
+  },
+  {
+    id:    'spatial_architect',
+    icon:  '🔄',
+    name:  'Isometric Mind',
+    desc:  'Match the 3D target silhouette with zero angular deviation.',
+    rarity:'silver'
+  },
+  {
+    id:    'on_fire',
+    icon:  '🔥',
+    name:  'Neural Overdrive',
+    desc:  'Achieve a 7× answer streak across sectors.',
+    rarity:'gold'
+  },
+  {
+    id:    'memory_master',
+    icon:  '🧠',
+    name:  'Total Recall',
+    desc:  'Conquer the Memory Vault boss with zero mistaken tiles.',
+    rarity:'gold'
+  },
+  {
+    id:    'flow_state',
+    icon:  '🌊',
+    name:  'The Flow Zone',
+    desc:  'Maintain predicted success rate p within 0.65–0.75 for 5 trials.',
+    rarity:'gold'
+  },
+  {
+    id:    'perfect_round',
+    icon:  '⭐',
+    name:  'Flawless Breach',
+    desc:  'Achieve 100% overall accuracy in a full facility run.',
+    rarity:'gold'
+  },
+  {
+    id:    'final_breach',
+    icon:  '🚪',
+    name:  'Neural Freedom',
+    desc:  'Decrypt the Final Core terminal and achieve the Freedom ending.',
+    rarity:'gold'
   }
 ];
 
-/** Achievement rarity → CSS class map */
 export const RARITY_CLASS = {
   bronze: 'rarity-bronze',
   silver: 'rarity-silver',
   gold:   'rarity-gold'
 };
 
-/** Lookup achievement by id */
 export function getAchievement(id) {
   return ACHIEVEMENTS.find(a => a.id === id) || null;
 }
 
-/**
- * Evaluate which achievements are newly unlocked after a session.
- * @param {object} summary  Session summary from SessionManager
- * @param {object} profile  Player profile from ProfileManager
- * @param {number[]} streakHistory  per-challenge streak snapshots
- * @returns {string[]}  array of newly unlocked achievement ids
- */
 export function evaluateAchievements(summary, profile, meta = {}) {
   const newlyUnlocked = [];
-  const already = new Set((profile.achievements || []).map(a => a.id));
+  const already = new Set((profile?.achievements || []).map(a => a.id));
 
   const check = (id, condition) => {
     if (!already.has(id) && condition) newlyUnlocked.push(id);
   };
 
-  // first_game
-  check('first_game', profile.gamesPlayed === 0);
-
-  // perfect_round — 100% accuracy
+  check('first_game', (profile?.gamesPlayed ?? 0) === 0);
   check('perfect_round', summary.overallAccuracy === 100);
+  check('on_fire', (summary.bestStreak ?? 0) >= 7);
+  check('improver', (summary.totalScore ?? 0) > (profile?.bestScore ?? 0) && (profile?.gamesPlayed ?? 0) > 0);
 
-  // on_fire — streak ≥ 7
-  check('on_fire', summary.bestStreak >= 7);
+  if (summary.challenges && Array.isArray(summary.challenges)) {
+    const rChallenges = summary.challenges.filter(c => c.category === 'reaction');
+    check('fastest_solver', rChallenges.some(c => c.responseTime < 0.35 && c.correct));
 
-  // improver — beat previous best score
-  check('improver',
-    profile.gamesPlayed > 0 &&
-    summary.totalScore > profile.bestScore
-  );
+    const mChallenges = summary.challenges.filter(c => c.category === 'memory');
+    check('memory_master', mChallenges.some(c => c.correct && c.difficulty >= 4));
 
-  // fastest_solver — any reaction challenge < 350ms
-  check('fastest_solver', meta.fastestReaction != null && meta.fastestReaction < 0.35);
-
-  // memory_master — perfect memory at hard/expert
-  check('memory_master', meta.memoryPerfect === true);
-
-  // audiophile — perfect audio challenge
-  check('audiophile', meta.audioPerfect === true);
-
-  // pattern_expert — 4 consecutive pattern correct
-  check('pattern_expert', meta.patternStreak >= 4);
+    const aChallenges = summary.challenges.filter(c => c.category === 'audio');
+    check('audiophile', aChallenges.some(c => c.correct));
+  }
 
   return newlyUnlocked;
 }

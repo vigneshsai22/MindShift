@@ -134,6 +134,10 @@ export class GameEngine {
     if (threeCanvas) threeCanvas.style.display = 'block';
 
     try {
+      if (window.__app__) {
+        await window.__app__.start3D();
+        return;
+      }
       const { MindShift3D } = await import('../three/MindShift3D.js');
       this.threeMode = new MindShift3D({
         canvas: threeCanvas,

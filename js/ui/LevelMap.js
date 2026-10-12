@@ -1,0 +1,162 @@
+/* ═══════════════════════════════════════════════════════════════
+   LevelMap.js — Standard Level Selection Screen (Levels 1 to 30)
+   Clean, unified 30-level grid with star ratings and progress.
+   ═══════════════════════════════════════════════════════════════ */
+
+import { EventBus } from '../core/EventBus.js';
+import { SFXLib }   from '../audio/SFXLib.js';
+
+export class LevelMap {
+  /**
+   * @param {Object} opts
+   * @param {string} opts.gameId
+   * @param {string} opts.gameName
+   * @param {Function} opts.getStars - (level) => 0|1|2|3
+   * @param {Function} opts.isUnlocked - (level) => boolean
+   */
+  constructor(opts = {}) {
+    this._gameId     = opts.gameId;
+    this._gameName   = opts.gameName || 'Challenge';
+    this._getStars   = opts.getStars || (() => 0);
+    this._isUnlocked = opts.isUnlocked || (() => true);
+    this._container  = null;
+    this._built      = false;
+    this._visible    = false;
+  }
+
+  build() {
+    if (this._built) return;
+    this._built = true;
+
+    const el = document.createElement('div');
+    el.id = 'level-map';
+    el.className = 'level-map-overlay';
+
+    let nodesHtml = '';
+    for (let level = 1; level <= 30; level++) {
+      const stars = this._getStars(level);
+      const unlocked = this._isUnlocked(level);
+      const starsHtml = [0, 1, 2].map(i =>
+        `<span class="lm-star ${i < stars ? 'lm-star-filled' : ''}">★</span>`
+      ).join('');
+
+      nodesHtml += `
+        <button class="lm-node ${unlocked ? '' : 'lm-locked'} ${stars > 0 ? 'lm-cleared' : ''}"
+                data-level="${level}" ${unlocked ? '' : 'disabled'}>
+          <span class="lm-node-num">${level}</span>
+          <div class="lm-node-stars">${starsHtml}</div>
+        </button>
+      `;
+    }
+
+    el.innerHTML = `
+      <div class="level-map-container">
+        <div class="lm-header">
+          <button class="lm-back" id="lm-back">← Back to Catalogue</button>
+          <div class="lm-header-center">
+            <h2 class="lm-title">${this._gameName}</h2>
+            <span class="lm-subtitle">Select Level (1 – 30)</span>
+          </div>
+          <div class="lm-stats" id="lm-stats">0 / 30 Cleared</div>
+        </div>
+        <div class="lm-grid">
+          ${nodesHtml}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(el);
+    this._container = el;
+    this._bindEvents();
+    this._refresh();
+  }
+
+  _bindEvents() {
+    // Back button
+    this._container.querySelector('#lm-back')?.addEventListener('click', () => {
+      SFXLib.click?.() || SFXLib.playClick?.();
+      this.hide();
+      EventBus.emit('levelmap:back');
+    });
+
+    // Level nodes
+    const nodes = this._container.querySelectorAll('.lm-node');
+    nodes.forEach(node => {
+      node.addEventListener('click', () => {
+        if (node.disabled) return;
+        const level = parseInt(node.dataset.level, 10);
+        SFXLib.levelStart?.() || SFXLib.click?.();
+        this.hide();
+        EventBus.emit('levelmap:select', { gameId: this._gameId, level });
+      });
+    });
+  }
+
+  setGame(gameId, gameName) {
+    this._gameId = gameId;
+    this._gameName = gameName;
+    if (!this._built) this.build();
+    const titleEl = this._container?.querySelector('.lm-title');
+    if (titleEl) titleEl.textContent = gameName;
+    this._refresh();
+  }
+
+  show() {
+    if (!this._built) this.build();
+    this._refresh();
+    this._container.classList.add('visible');
+    this._visible = true;
+    SFXLib.whoosh?.();
+  }
+
+  hide() {
+    this._container?.classList.remove('visible');
+    this._visible = false;
+  }
+
+  toggle() {
+    if (this._visible) this.hide();
+    else this.show();
+  }
+
+  _refresh() {
+    const titleEl = this._container?.querySelector('.lm-title');
+    if (titleEl && this._gameName) titleEl.textContent = this._gameName;
+
+    let clearedCount = 0;
+    let totalStars = 0;
+
+    // Update stars and lock states
+    const nodes = this._container?.querySelectorAll('.lm-node');
+    nodes?.forEach(node => {
+      const level = parseInt(node.dataset.level, 10);
+      const stars = this._getStars(level);
+      const unlocked = this._isUnlocked(level);
+
+      if (stars > 0) clearedCount++;
+      totalStars += stars;
+
+      node.disabled = !unlocked;
+      node.classList.toggle('lm-locked', !unlocked);
+      node.classList.toggle('lm-cleared', stars > 0);
+      const starEls = node.querySelectorAll('.lm-star');
+      starEls.forEach((s, i) => {
+        s.classList.toggle('lm-star-filled', i < stars);
+      });
+    });
+
+    const statsEl = this._container?.querySelector('#lm-stats');
+    if (statsEl) {
+      statsEl.textContent = `${clearedCount}/30 Cleared · ★ ${totalStars}`;
+    }
+  }
+
+  get isVisible() { return this._visible; }
+
+  dispose() {
+    if (this._container?.parentNode) {
+      this._container.parentNode.removeChild(this._container);
+    }
+    this._built = false;
+  }
+}

@@ -1,0 +1,772 @@
+{
+  "games": [
+    {
+      "id": "lumen-pond",
+      "name": "Lumen Pond",
+      "skill": "memory",
+      "tags": [
+        "working-memory",
+        "auditory-recall",
+        "sequencing"
+      ],
+      "type": "3D",
+      "tier": 1,
+      "levels": 30,
+      "description": "Lily pads bloom with light and tones — recall the sequence before they fade.",
+      "wing": "memory",
+      "index": 1,
+      "icon": "🪷",
+      "palette": {
+        "primary": "#00bcd4",
+        "secondary": "#004d40",
+        "accent": "#80deea"
+      },
+      "built": true,
+      "status": "playable"
+    },
+    {
+      "id": "witness-room",
+      "name": "Witness Room",
+      "skill": "memory",
+      "tags": [
+        "episodic-memory",
+        "visual-recall",
+        "video-clues"
+      ],
+      "type": "3D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Watch security footage, then reconstruct what happened — who moved what, when.",
+      "wing": "memory",
+      "index": 2,
+      "icon": "📹",
+      "palette": {
+        "primary": "#607d8b",
+        "secondary": "#263238",
+        "accent": "#90a4ae"
+      },
+      "video": true,
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "echo-shelves",
+      "name": "Echo Shelves",
+      "skill": "memory",
+      "tags": [
+        "spatial-memory",
+        "visual-recall",
+        "object-location"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Memorise item positions on shelves. Lights out — restore everything from memory.",
+      "wing": "memory",
+      "index": 3,
+      "icon": "📚",
+      "palette": {
+        "primary": "#8d6e63",
+        "secondary": "#3e2723",
+        "accent": "#bcaaa4"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "tone-tower",
+      "name": "Tone Tower",
+      "skill": "memory",
+      "tags": [
+        "auditory-recall",
+        "pitch-discrimination",
+        "rhythm"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "A tower of glowing keys plays a melody — replay it before the tower crumbles.",
+      "wing": "memory",
+      "index": 4,
+      "icon": "🎵",
+      "palette": {
+        "primary": "#e91e63",
+        "secondary": "#880e4f",
+        "accent": "#f48fb1"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "twin-crystals",
+      "name": "Twin Crystals",
+      "skill": "memory",
+      "tags": [
+        "visual-matching",
+        "working-memory",
+        "concentration"
+      ],
+      "type": "2.5D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Flip crystals in a 3D grid to find matching pairs before time runs out.",
+      "wing": "memory",
+      "index": 5,
+      "icon": "💎",
+      "palette": {
+        "primary": "#9c27b0",
+        "secondary": "#4a148c",
+        "accent": "#ce93d8"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "terminal-hack",
+      "name": "Terminal Hack",
+      "skill": "logic",
+      "tags": [
+        "number-sequences",
+        "deduction",
+        "arithmetic"
+      ],
+      "type": "3D",
+      "tier": 1,
+      "levels": 30,
+      "description": "Hack holographic terminals by solving number sequences and logic puzzles.",
+      "wing": "logic",
+      "index": 6,
+      "icon": "💻",
+      "palette": {
+        "primary": "#00e676",
+        "secondary": "#1b5e20",
+        "accent": "#69f0ae"
+      },
+      "built": true,
+      "status": "playable"
+    },
+    {
+      "id": "gate-circuit",
+      "name": "Gate Circuit",
+      "skill": "logic",
+      "tags": [
+        "boolean-logic",
+        "planning",
+        "circuit-analysis"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Route power through AND, OR, NOT, XOR gates to light the exit — limited switches.",
+      "wing": "logic",
+      "index": 7,
+      "icon": "⚡",
+      "palette": {
+        "primary": "#ffeb3b",
+        "secondary": "#f57f17",
+        "accent": "#fff176"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "evidence-board",
+      "name": "Evidence Board",
+      "skill": "logic",
+      "tags": [
+        "constraint-satisfaction",
+        "deduction",
+        "elimination"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "A wall of clue cards — deduce who, what, and where with a constraint grid.",
+      "wing": "logic",
+      "index": 8,
+      "icon": "🕵️",
+      "palette": {
+        "primary": "#ff9800",
+        "secondary": "#e65100",
+        "accent": "#ffcc02"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "balance-lab",
+      "name": "Balance Lab",
+      "skill": "logic",
+      "tags": [
+        "estimation",
+        "binary-search",
+        "weighing"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Find the odd or heavier object using a balance scale with limited weighings.",
+      "wing": "logic",
+      "index": 9,
+      "icon": "⚖️",
+      "palette": {
+        "primary": "#795548",
+        "secondary": "#3e2723",
+        "accent": "#a1887f"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "number-forge",
+      "name": "Number Forge",
+      "skill": "logic",
+      "tags": [
+        "arithmetic",
+        "planning",
+        "number-sense"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Combine numbered tiles with +, −, ×, ÷ to forge the target number.",
+      "wing": "logic",
+      "index": 10,
+      "icon": "🔢",
+      "palette": {
+        "primary": "#3f51b5",
+        "secondary": "#1a237e",
+        "accent": "#7986cb"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "anomaly-rooms",
+      "name": "Anomaly Rooms",
+      "skill": "observation",
+      "tags": [
+        "spot-the-difference",
+        "visual-scanning",
+        "attention-to-detail"
+      ],
+      "type": "3D",
+      "tier": 1,
+      "levels": 30,
+      "description": "Two near-identical 3D rooms — find the differences before the scanner sweeps.",
+      "wing": "observation",
+      "index": 11,
+      "icon": "🔍",
+      "palette": {
+        "primary": "#ff5722",
+        "secondary": "#bf360c",
+        "accent": "#ff8a65"
+      },
+      "built": true,
+      "status": "playable"
+    },
+    {
+      "id": "surveillance-wall",
+      "name": "Surveillance Wall",
+      "skill": "observation",
+      "tags": [
+        "divided-attention",
+        "change-detection",
+        "video-clues"
+      ],
+      "type": "3D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Monitor a bank of video feeds — find the feed that differs, count events.",
+      "wing": "observation",
+      "index": 12,
+      "icon": "📺",
+      "palette": {
+        "primary": "#546e7a",
+        "secondary": "#263238",
+        "accent": "#78909c"
+      },
+      "video": true,
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "hidden-archive",
+      "name": "Hidden Archive",
+      "skill": "observation",
+      "tags": [
+        "visual-search",
+        "object-finding",
+        "flashlight-mechanic"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Find listed objects in a cluttered room with only a flashlight cone of vision.",
+      "wing": "observation",
+      "index": 13,
+      "icon": "🔦",
+      "palette": {
+        "primary": "#4e342e",
+        "secondary": "#1b0000",
+        "accent": "#8d6e63"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "swarm-count",
+      "name": "Swarm Count",
+      "skill": "observation",
+      "tags": [
+        "tracking",
+        "counting",
+        "selective-attention"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Track and count moving objects of a target type while distractors cross paths.",
+      "wing": "observation",
+      "index": 14,
+      "icon": "🐝",
+      "palette": {
+        "primary": "#ffc107",
+        "secondary": "#ff6f00",
+        "accent": "#ffe082"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "flicker-lab",
+      "name": "Flicker Lab",
+      "skill": "observation",
+      "tags": [
+        "change-blindness",
+        "rapid-scanning",
+        "visual-processing"
+      ],
+      "type": "2.5D",
+      "tier": 3,
+      "levels": 30,
+      "description": "A scene flickers between two frames — spot what changed. Change blindness test.",
+      "wing": "observation",
+      "index": 15,
+      "icon": "👁️",
+      "palette": {
+        "primary": "#7b1fa2",
+        "secondary": "#4a0072",
+        "accent": "#ba68c8"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "hologram-matrix",
+      "name": "Hologram Matrix",
+      "skill": "pattern",
+      "tags": [
+        "matrix-reasoning",
+        "spatial-transformation",
+        "rule-inference"
+      ],
+      "type": "3D",
+      "tier": 1,
+      "levels": 30,
+      "description": "A 3×3 hologram grid with a missing piece — grab the right 3D shape and snap it in.",
+      "wing": "pattern",
+      "index": 16,
+      "icon": "🔷",
+      "palette": {
+        "primary": "#2196f3",
+        "secondary": "#0d47a1",
+        "accent": "#64b5f6"
+      },
+      "built": true,
+      "status": "playable"
+    },
+    {
+      "id": "pattern-wall",
+      "name": "Pattern Wall",
+      "skill": "pattern",
+      "tags": [
+        "audio-visual-patterns",
+        "sequence-completion",
+        "rhythm"
+      ],
+      "type": "3D",
+      "tier": 2,
+      "levels": 30,
+      "description": "A wall of lights and tones continues a sequence — complete it with levers.",
+      "wing": "pattern",
+      "index": 17,
+      "icon": "🎹",
+      "palette": {
+        "primary": "#9c27b0",
+        "secondary": "#6a1b9a",
+        "accent": "#ce93d8"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "cipher-dials",
+      "name": "Cipher Dials",
+      "skill": "pattern",
+      "tags": [
+        "rule-inference",
+        "rotational-logic",
+        "cryptography"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Rotate 3D dials to crack a lock whose rule you infer from example locks.",
+      "wing": "pattern",
+      "index": 18,
+      "icon": "🔐",
+      "palette": {
+        "primary": "#607d8b",
+        "secondary": "#37474f",
+        "accent": "#90a4ae"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "factory-sorter",
+      "name": "Factory Sorter",
+      "skill": "pattern",
+      "tags": [
+        "rule-switching",
+        "classification",
+        "processing-speed"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Items ride a conveyor — sort them by a rule that changes mid-run. Stay sharp.",
+      "wing": "pattern",
+      "index": 19,
+      "icon": "🏭",
+      "palette": {
+        "primary": "#ff9800",
+        "secondary": "#e65100",
+        "accent": "#ffb74d"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "tile-cascade",
+      "name": "Tile Cascade",
+      "skill": "pattern",
+      "tags": [
+        "sequence-prediction",
+        "spatial-reasoning",
+        "planning"
+      ],
+      "type": "2.5D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Predict and place the next falling tile in a growing pattern sequence.",
+      "wing": "pattern",
+      "index": 20,
+      "icon": "🧩",
+      "palette": {
+        "primary": "#00bcd4",
+        "secondary": "#006064",
+        "accent": "#4dd0e1"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "reflex-arena",
+      "name": "Reflex Arena",
+      "skill": "reaction",
+      "tags": [
+        "selective-attention",
+        "go-no-go",
+        "rule-switching"
+      ],
+      "type": "3D",
+      "tier": 1,
+      "levels": 30,
+      "description": "Targets spawn with audio cues — click matching ones, ignore decoys. Rules shift.",
+      "wing": "reaction",
+      "index": 21,
+      "icon": "🎯",
+      "palette": {
+        "primary": "#f44336",
+        "secondary": "#b71c1c",
+        "accent": "#ef9a9a"
+      },
+      "built": true,
+      "status": "playable"
+    },
+    {
+      "id": "laser-corridor",
+      "name": "Laser Corridor",
+      "skill": "reaction",
+      "tags": [
+        "rhythm",
+        "timing",
+        "inhibition"
+      ],
+      "type": "3D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Dodge timed laser patterns that follow a rhythm — reaction windows shrink.",
+      "wing": "reaction",
+      "index": 22,
+      "icon": "🔴",
+      "palette": {
+        "primary": "#d50000",
+        "secondary": "#7f0000",
+        "accent": "#ff5252"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "lane-shift",
+      "name": "Lane Shift",
+      "skill": "reaction",
+      "tags": [
+        "divided-attention",
+        "processing-speed",
+        "multitasking"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Runner on a 3D highway — switch lanes to collect tokens while a side-task runs.",
+      "wing": "reaction",
+      "index": 23,
+      "icon": "🛣️",
+      "palette": {
+        "primary": "#6200ea",
+        "secondary": "#311b92",
+        "accent": "#b388ff"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "signal-console",
+      "name": "Signal Console",
+      "skill": "reaction",
+      "tags": [
+        "choice-reaction",
+        "inhibition",
+        "shifting"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Go/no-go and choice-reaction panels — the mapping flips mid-run at higher levels.",
+      "wing": "reaction",
+      "index": 24,
+      "icon": "🚦",
+      "palette": {
+        "primary": "#4caf50",
+        "secondary": "#1b5e20",
+        "accent": "#81c784"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "reactor-control",
+      "name": "Reactor Control",
+      "skill": "reaction",
+      "tags": [
+        "multitasking",
+        "sustained-attention",
+        "monitoring"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Keep gauges in the safe zone while alert events demand quick responses.",
+      "wing": "reaction",
+      "index": 25,
+      "icon": "☢️",
+      "palette": {
+        "primary": "#ff6d00",
+        "secondary": "#e65100",
+        "accent": "#ffab40"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "rotation-core",
+      "name": "Rotation Core",
+      "skill": "spatial",
+      "tags": [
+        "mental-rotation",
+        "spatial-perception",
+        "3d-visualization"
+      ],
+      "type": "3D",
+      "tier": 1,
+      "levels": 30,
+      "description": "Rotate a 3D object to match a wall silhouette — mirrored decoys at higher levels.",
+      "wing": "spatial",
+      "index": 26,
+      "icon": "🔄",
+      "palette": {
+        "primary": "#00acc1",
+        "secondary": "#006064",
+        "accent": "#4dd0e1"
+      },
+      "built": true,
+      "status": "playable"
+    },
+    {
+      "id": "net-folder",
+      "name": "Net Folder",
+      "skill": "spatial",
+      "tags": [
+        "spatial-visualization",
+        "mental-folding",
+        "3d-reasoning"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Fold a 2D cube net in 3D and pick the matching solid from options.",
+      "wing": "spatial",
+      "index": 27,
+      "icon": "📦",
+      "palette": {
+        "primary": "#8bc34a",
+        "secondary": "#33691e",
+        "accent": "#aed581"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "mind-map-maze",
+      "name": "Mind Map Maze",
+      "skill": "spatial",
+      "tags": [
+        "spatial-memory",
+        "navigation",
+        "mental-mapping"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Study a top-down map briefly, then navigate the 3D maze from memory.",
+      "wing": "spatial",
+      "index": 28,
+      "icon": "🗺️",
+      "palette": {
+        "primary": "#009688",
+        "secondary": "#004d40",
+        "accent": "#4db6ac"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "frost-route",
+      "name": "Frost Route",
+      "skill": "spatial",
+      "tags": [
+        "planning",
+        "pathfinding",
+        "estimation"
+      ],
+      "type": "2.5D",
+      "tier": 2,
+      "levels": 30,
+      "description": "Isometric ice grid — plan a sliding path to collect coins, avoid cracks.",
+      "wing": "spatial",
+      "index": 29,
+      "icon": "❄️",
+      "palette": {
+        "primary": "#b3e5fc",
+        "secondary": "#01579b",
+        "accent": "#e1f5fe"
+      },
+      "built": false,
+      "status": "card-only"
+    },
+    {
+      "id": "drop-lab",
+      "name": "Drop Lab",
+      "skill": "spatial",
+      "tags": [
+        "physics-estimation",
+        "planning",
+        "chain-reaction"
+      ],
+      "type": "3D",
+      "tier": 3,
+      "levels": 30,
+      "description": "Cut ropes and remove supports so crates land on targets — chain reactions at L30.",
+      "wing": "spatial",
+      "index": 30,
+      "icon": "📦",
+      "palette": {
+        "primary": "#ff7043",
+        "secondary": "#bf360c",
+        "accent": "#ffab91"
+      },
+      "built": false,
+      "status": "card-only"
+    }
+  ],
+  "wings": {
+    "memory": {
+      "label": "Memory Vault",
+      "icon": "🧠",
+      "color": "#00bcd4",
+      "order": 0
+    },
+    "logic": {
+      "label": "Logic Terminal",
+      "icon": "💻",
+      "color": "#00e676",
+      "order": 1
+    },
+    "observation": {
+      "label": "Observation Deck",
+      "icon": "🔍",
+      "color": "#ff5722",
+      "order": 2
+    },
+    "pattern": {
+      "label": "Pattern Gallery",
+      "icon": "🔷",
+      "color": "#2196f3",
+      "order": 3
+    },
+    "reaction": {
+      "label": "Reaction Arena",
+      "icon": "🎯",
+      "color": "#f44336",
+      "order": 4
+    },
+    "spatial": {
+      "label": "Spatial Workshop",
+      "icon": "🔄",
+      "color": "#00acc1",
+      "order": 5
+    }
+  },
+  "skillLabels": {
+    "memory": "Memory",
+    "logic": "Logical Reasoning",
+    "observation": "Visual Observation",
+    "pattern": "Pattern Recognition",
+    "reaction": "Reaction Time",
+    "spatial": "Spatial Reasoning"
+  }
+}

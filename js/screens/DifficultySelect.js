@@ -31,7 +31,7 @@ export class DifficultySelect {
 
     const back  = document.getElementById('btn-diff-back');
     const start = document.getElementById('btn-start-game');
-    if (back)  back.onclick  = () => this.engine.navigate('main-menu');
+    if (back)  back.onclick  = () => this.engine.navigate('game-mode-select');
     if (start) start.onclick = () => {
       this.engine.audio?.playLevelUp();
       if (this.engine.currentMode === '3d') {

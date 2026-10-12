@@ -91,6 +91,15 @@ export class ResultsScreen {
         this.engine.screens.game.continueGame();
       }
     };
+
+    const menuBtn = document.getElementById('btn-result-menu');
+    if (menuBtn) {
+      menuBtn.onclick = () => {
+        this.engine.audio?.playClick();
+        this.hide();
+        this.engine.navigate('main-menu');
+      };
+    }
   }
 
   _setText(id, val) {
