@@ -39,6 +39,15 @@ const GAME_CLASSES = {
   'rotation-core':   RotationCore
 };
 
+export const ASSESSMENT_ORDER = [
+  'lumen-pond',      // Memory Wing (Lumen Pond)
+  'terminal-hack',   // Logic Wing (Terminal Hack)
+  'hologram-matrix', // Pattern Wing (Hologram Matrix)
+  'rotation-core',   // Spatial Wing (Rotation Core)
+  'reflex-arena',    // Reaction Wing (Reflex Arena)
+  'anomaly-rooms'    // Observation Wing (Anomaly Rooms)
+];
+
 export class App {
   constructor() {
     this.canvas = null;
@@ -188,7 +197,11 @@ export class App {
       await this.start3D();
       this.mode = 'assessment';
       this._assessmentIndex = 0;
-      this.catalogue?.show();
+      const firstGame = ASSESSMENT_ORDER[0];
+      this.loadGame(firstGame, 1);
+      setTimeout(() => {
+        this.hud?.flashPopup('AI DIRECTOR: ASSESSMENT MODE ACTIVE', '#00f2fe');
+      }, 300);
     } catch (err) {
       console.error('[MindShift] startAssessmentMode failed:', err);
       alert('Could not start 3D mode. Check browser console (F12) for details.');
