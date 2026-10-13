@@ -363,7 +363,6 @@ export class App {
 
       // 5. Show Result Screen
       const gameMeta = this.gamesData?.games?.find(g => g.id === this.activeGameId);
-      const ASSESSMENT_ORDER = ['lumen-pond', 'terminal-hack', 'anomaly-rooms', 'hologram-matrix', 'reflex-arena', 'rotation-core'];
 
       if (this.resultScreen) {
         this.resultScreen.show({
@@ -379,12 +378,14 @@ export class App {
           isTimeout,
           hintsUsed: res.hintsUsed,
           onNext: () => {
-            if (this.mode === 'assessment') {
-              this._assessmentIndex = ((this._assessmentIndex || 0) + 1) % ASSESSMENT_ORDER.length;
-              const nextGame = ASSESSMENT_ORDER[this._assessmentIndex];
-              this.loadGame(nextGame, 1);
+            if (this.currentLevel < 30) {
+              // Always stick to the same game and advance to the next level (1 to 30)
+              this.loadGame(this.activeGameId, this.currentLevel + 1);
             } else {
-              this.loadGame(this.activeGameId, Math.min(30, this.currentLevel + 1));
+              // All 30 levels completed in this game
+              this.hud?.flashPopup('CONGRATULATIONS! ALL 30 LEVELS COMPLETED!', '#00f2fe');
+              this.levelMap.setGame(this.activeGameId, gameMeta?.name || this.activeGameId);
+              this.levelMap.show();
             }
           },
           onRetry: () => {
@@ -405,6 +406,13 @@ export class App {
           score: this.score,
           passed: res.correct,
           isTimeout: !res.correct,
+          onNext: () => {
+            if (this.currentLevel < 30) {
+              this.loadGame(this.activeGameId, this.currentLevel + 1);
+            } else {
+              this.catalogue?.show();
+            }
+          },
           onRetry: () => this.loadGame(this.activeGameId, this.currentLevel),
           onCatalogue: () => this.catalogue?.show()
         });

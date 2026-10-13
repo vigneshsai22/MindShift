@@ -64,9 +64,9 @@ export class ResultScreen3D {
 
         <div class="result-actions">
           <button class="btn-res secondary" id="res-btn-hub">← Exit to Hub</button>
-          <button class="btn-res secondary" id="res-btn-cat">Catalogue (Tab)</button>
+          <button class="btn-res secondary" id="res-btn-cat">Choose Game (Tab)</button>
           <button class="btn-res secondary" id="res-btn-retry">Retry Level</button>
-          <button class="btn-res primary" id="res-btn-next">Next Challenge ▶</button>
+          <button class="btn-res primary" id="res-btn-next">Next Level ▶</button>
         </div>
       </div>
     `;
@@ -139,6 +139,14 @@ export class ResultScreen3D {
     const starEls = this._container.querySelectorAll('#res-stars .star');
 
     if (titleEl) titleEl.textContent = `${gameName} — Level ${level}`;
+    const nextBtn = this._container.querySelector('#res-btn-next');
+    if (nextBtn) {
+      if (level < 30) {
+        nextBtn.textContent = `Next Level (${level + 1} / 30) ▶`;
+      } else {
+        nextBtn.textContent = 'All 30 Levels Cleared! 🎉';
+      }
+    }
     if (badgeEl) {
       badgeEl.textContent = passed ? 'TRIAL COMPLETE' : (timedOut ? 'TIME EXPIRED' : 'TRIAL FAILED');
       badgeEl.style.color = passed ? 'var(--color-accent, #00f2fe)' : '#ff4d4d';
