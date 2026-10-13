@@ -2548,6 +2548,37 @@
   font-weight: 600;
   white-space: nowrap;
 }
+.cat-card-locked {
+  opacity: 0.48;
+  filter: grayscale(0.7);
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(8, 12, 22, 0.6) !important;
+}
+.cat-card-locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+.cat-lock-badge {
+  font-size: 0.72rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.cat-btn-locked {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #64748b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
 .catalogue-footer {
   display: flex;
   justify-content: space-between;

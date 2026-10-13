@@ -1,21 +1,22 @@
 /* ═══════════════════════════════════════════════════════════════
    CatalogueTerminal.js — Game Catalogue & Mind Lab Domain Selector
-   Shows all 30 games across 6 cognitive wings with full filtering,
-   star progress, 3D Core badges, and direct Level Map selection (1–30).
+   Shows all 30 games across 6 cognitive wings.
+   Active 3D games are fully unlocked with 30 progressive levels.
+   Unimplemented games are strictly locked with visual indicators.
    ═══════════════════════════════════════════════════════════════ */
 
 import { EventBus } from '../core/EventBus.js';
 import { SFXLib }   from '../audio/SFXLib.js';
 
-// Core 3D game engines available in each cognitive wing
-const WING_CORE_GAMES = {
-  memory:      'lumen-pond',
-  logic:       'terminal-hack',
-  observation: 'anomaly-rooms',
-  pattern:     'hologram-matrix',
-  reaction:    'reflex-arena',
-  spatial:     'rotation-core'
-};
+// The 6 active, fully implemented 3D cognitive games
+export const PLAYABLE_GAMES = new Set([
+  'lumen-pond',      // Memory Vault
+  'terminal-hack',   // Logic Terminal
+  'anomaly-rooms',   // Observation Deck
+  'hologram-matrix', // Pattern Gallery
+  'reflex-arena',    // Reaction Arena
+  'rotation-core'    // Spatial Workshop
+]);
 
 const DEFAULT_WINGS = {
   memory:      { label: 'Memory Vault',      icon: '🧠', color: '#00bcd4', order: 0 },
@@ -51,7 +52,7 @@ export class CatalogueTerminal {
     this._built       = false;
     this._filter      = 'all';
     this._title       = '🧠 Cognitive Game Catalogue';
-    this._subtitle    = 'Explore all 30 cognitive challenges across 6 wings — select any challenge & level (1–30)';
+    this._subtitle    = 'Choose an active research challenge to play across 30 progressive difficulty levels.';
   }
 
   setGamesData(data) {
@@ -88,38 +89,46 @@ export class CatalogueTerminal {
       } catch (e) {
         console.warn('[CatalogueTerminal] fetch games.json fallback:', e);
       }
-      // If fetch fails, populate minimal 30 games registry
       this._useFallbackRegistry();
     }
   }
 
   _useFallbackRegistry() {
     const wings = ['memory', 'logic', 'observation', 'pattern', 'reaction', 'spatial'];
+    const wingCoreNames = {
+      memory: 'lumen-pond',
+      logic: 'terminal-hack',
+      observation: 'anomaly-rooms',
+      pattern: 'hologram-matrix',
+      reaction: 'reflex-arena',
+      spatial: 'rotation-core'
+    };
     const wingNames = {
-      memory: ['Lumen Pond', 'Witness Room', 'Echo Shelves', 'Tone Tower', 'Memory Maze'],
-      logic: ['Terminal Hack', 'Circuit Sorter', 'Syllogism Chamber', 'Binary Beam', 'Rule Forge'],
-      observation: ['Anomaly Rooms', 'Shadow Shift', 'Microscopic Match', 'Optical Drift', 'Camouflage Lab'],
-      pattern: ['Hologram Matrix', 'Fractal Sequence', 'Symbol Synthesizer', 'Prism Lattice', 'Code Weaver'],
-      reaction: ['Reflex Arena', 'Laser Gate', 'Velocity Sphere', 'Impulse Core', 'Photon Dash'],
-      spatial: ['Rotation Core', 'Origami Fold', 'Isometric Builder', 'Mirror Maze', 'Tesseract Drift']
+      memory: ['Lumen Pond', 'Witness Room', 'Echo Shelves', 'Tone Tower', 'Twin Crystals'],
+      logic: ['Terminal Hack', 'Gate Circuit', 'Evidence Board', 'Balance Lab', 'Number Forge'],
+      observation: ['Anomaly Rooms', 'Surveillance Wall', 'Hidden Archive', 'Swarm Count', 'Flicker Lab'],
+      pattern: ['Hologram Matrix', 'Pattern Wall', 'Cipher Dials', 'Factory Sorter', 'Tile Cascade'],
+      reaction: ['Reflex Arena', 'Laser Corridor', 'Lane Shift', 'Signal Console', 'Reactor Control'],
+      spatial: ['Rotation Core', 'Net Folder', 'Mind Map Maze', 'Frost Route', 'Drop Lab']
     };
     const games = [];
     wings.forEach(w => {
       const names = wingNames[w] || [];
       names.forEach((name, idx) => {
-        const id = idx === 0 ? WING_CORE_GAMES[w] : `${w}-game-${idx + 1}`;
+        const id = idx === 0 ? wingCoreNames[w] : `${w}-module-${idx + 1}`;
+        const isCore = (idx === 0);
         games.push({
           id,
           name,
           skill: w,
           wing: w,
           icon: DEFAULT_WINGS[w]?.icon || '🧠',
-          description: idx === 0
-            ? `Flagship 3D simulation for the ${DEFAULT_WINGS[w]?.label}.`
-            : `Advanced cognitive research trial within the ${DEFAULT_WINGS[w]?.label}.`,
-          tags: [w, `tier-${idx === 0 ? 1 : 2}`, 'adaptive'],
-          built: idx === 0,
-          status: idx === 0 ? 'playable' : 'simulation',
+          description: isCore
+            ? `Active 3D simulation for the ${DEFAULT_WINGS[w]?.label}.`
+            : `Facility module in development for ${DEFAULT_WINGS[w]?.label}.`,
+          tags: [w, isCore ? 'playable' : 'locked'],
+          built: isCore,
+          status: isCore ? 'playable' : 'card-only',
           palette: { primary: DEFAULT_WINGS[w]?.color || '#00f2fe', secondary: '#0a192f' }
         });
       });
@@ -147,7 +156,7 @@ export class CatalogueTerminal {
       <div class="catalogue-grid" id="cat-grid"></div>
       <div class="catalogue-footer">
         <span id="cat-count">Loading Games...</span>
-        <span class="catalogue-hint">Click any game to choose Level (1 – 30) · Press Tab or Back to return</span>
+        <span class="catalogue-hint">Click an active game to select Levels 1–30 · Press Tab to close</span>
       </div>
     `;
     document.body.appendChild(el);
@@ -163,12 +172,20 @@ export class CatalogueTerminal {
     if (!container) return;
 
     const wingEntries = Object.entries(this._wings || DEFAULT_WINGS);
+    const playableCount = this._games.filter(g => PLAYABLE_GAMES.has(g.id) || g.status === 'playable').length;
+
     container.innerHTML = `
-      <button class="cat-filter ${this._filter === 'all' ? 'active' : ''}" data-filter="all">All Games (${this._games.length})</button>
+      <button class="cat-filter ${this._filter === 'playable' ? 'active' : ''}" data-filter="playable" style="border: 1px solid #00f2fe; color: #00f2fe;">
+        ✨ Playable Only (${playableCount})
+      </button>
+      <button class="cat-filter ${this._filter === 'all' ? 'active' : ''}" data-filter="all">
+        All Games (${this._games.length})
+      </button>
       ${wingEntries.map(([key, wing]) => {
-        const count = this._games.filter(g => g.wing === key).length;
+        const wingGames = this._games.filter(g => g.wing === key);
+        const wingPlayable = wingGames.filter(g => PLAYABLE_GAMES.has(g.id) || g.status === 'playable').length;
         return `<button class="cat-filter ${this._filter === key ? 'active' : ''}" data-filter="${key}" style="border-left: 3px solid ${wing.color || '#00f2fe'}">
-          ${wing.icon || ''} ${wing.label} ${count > 0 ? `(${count})` : ''}
+          ${wing.icon || ''} ${wing.label} (${wingPlayable} active)
         </button>`;
       }).join('')}
     `;
@@ -194,51 +211,68 @@ export class CatalogueTerminal {
       this._useFallbackRegistry();
     }
 
-    const filtered = this._filter === 'all'
-      ? this._games
-      : this._games.filter(g => g.wing === this._filter);
+    let filtered = [];
+    if (this._filter === 'playable') {
+      filtered = this._games.filter(g => PLAYABLE_GAMES.has(g.id) || g.status === 'playable');
+    } else if (this._filter === 'all') {
+      filtered = this._games;
+    } else {
+      filtered = this._games.filter(g => g.wing === this._filter);
+    }
 
     grid.innerHTML = filtered.map(game => {
+      const isPlayable = PLAYABLE_GAMES.has(game.id) || (game.status === 'playable' && game.built === true);
       const progress = (this._getProgress && this._getProgress(game.id)) || { stars: 0, cleared: 0, unlocked: true };
       const wingInfo = (this._wings && this._wings[game.wing]) || DEFAULT_WINGS[game.wing] || {};
       const skillName = (this._skillLabels && this._skillLabels[game.skill]) || game.skill || game.wing || 'Cognitive';
       const wingColor = wingInfo.color || game.palette?.primary || '#00f2fe';
-      const isCore3D = Boolean(WING_CORE_GAMES[game.wing] === game.id);
-      const targetGameId = isCore3D ? game.id : (WING_CORE_GAMES[game.wing] || 'lumen-pond');
       const starsHtml = this._renderStars(progress.stars || 0);
       const tags = Array.isArray(game.tags) ? game.tags : [];
       const tagsHtml = tags.slice(0, 3).map(t => `<span class="cat-tag">${t}</span>`).join('');
 
-      const badgeHtml = isCore3D
-        ? `<span class="cat-playable-badge">✨ 3D Simulation</span>`
-        : `<span class="cat-wing-badge" style="border-color:${wingColor}60;color:${wingColor}">${wingInfo.icon || '🔬'} ${wingInfo.label || 'Wing'}</span>`;
+      let badgeHtml = '';
+      let buttonHtml = '';
+
+      if (isPlayable) {
+        badgeHtml = `<span class="cat-playable-badge">▶ Playable (1–30)</span>`;
+        buttonHtml = `
+          <button class="cat-btn-play" type="button" data-game="${game.id}" data-name="${game.name}">
+            Select Level (1–30) ▶
+          </button>
+        `;
+      } else {
+        badgeHtml = `<span class="cat-lock-badge">🔒 Locked</span>`;
+        buttonHtml = `
+          <button class="cat-btn-play cat-btn-locked" type="button" disabled>
+            🔒 Locked (In Dev)
+          </button>
+        `;
+      }
 
       return `
-        <div class="cat-card ${isCore3D ? 'built cat-playable' : 'cat-wing-sim'}"
+        <div class="cat-card ${isPlayable ? 'built cat-playable' : 'cat-card-locked'}"
              data-game="${game.id}"
-             data-target-game="${targetGameId}"
              data-name="${game.name}"
-             style="border-top: 3px solid ${wingColor}">
+             data-locked="${!isPlayable}"
+             style="border-top: 3px solid ${isPlayable ? wingColor : '#334155'}">
           <div class="cat-card-header">
             <span class="cat-card-icon">${game.icon || wingInfo.icon || '🧠'}</span>
             <div style="flex:1;min-width:0;">
               <h3 class="cat-card-title">${game.name}</h3>
-              <span class="cat-card-skill" style="color:${wingColor}">
+              <span class="cat-card-skill" style="color:${isPlayable ? wingColor : '#64748b'}">
                 ${wingInfo.icon || ''} ${skillName}
               </span>
             </div>
             ${badgeHtml}
           </div>
-          <p class="cat-card-desc">${game.description || 'Cognitive challenge across 30 adaptive levels.'}</p>
+          <p class="cat-card-desc">${game.description || 'Cognitive challenge module.'}</p>
           <div class="cat-card-tags">${tagsHtml}</div>
           <div class="cat-card-footer">
             <div class="cat-stars">
               ${starsHtml}
-              <span style="font-size:0.75rem;color:#94a3b8;margin-left:6px">${progress.cleared || 0}/30 Cleared</span>
+              <span style="font-size:0.75rem;color:#94a3b8;margin-left:6px">${isPlayable ? `${progress.cleared || 0}/30 Cleared` : 'Locked'}</span>
             </div>
-            <button class="cat-btn-play" type="button" data-game="${game.id}" data-target-game="${targetGameId}" data-name="${game.name}">
-              Select Level (1–30) ▶
-            </button>
+            ${buttonHtml}
           </div>
         </div>
       `;
@@ -247,7 +281,9 @@ export class CatalogueTerminal {
     // Update count in footer
     const countEl = document.getElementById('cat-count');
     if (countEl) {
-      countEl.textContent = `${filtered.length} / ${this._games.length} Cognitive Challenges Ready (Levels 1–30)`;
+      const playableTotal = this._games.filter(g => PLAYABLE_GAMES.has(g.id) || g.status === 'playable').length;
+      const lockedTotal = this._games.length - playableTotal;
+      countEl.textContent = `${playableTotal} Playable Games (Levels 1–30) · ${lockedTotal} Locked Modules`;
     }
   }
 
@@ -291,20 +327,59 @@ export class CatalogueTerminal {
     const cards = this._container?.querySelectorAll('.cat-card');
     cards?.forEach(card => {
       card.addEventListener('click', (e) => {
-        // Prevent double triggers if clicking child button
-        const targetGame = card.dataset.targetGame || card.dataset.game;
-        const originalId = card.dataset.game;
-        const gameName   = card.dataset.name || 'Cognitive Challenge';
+        const isLocked = card.dataset.locked === 'true';
+        const gameId = card.dataset.game;
+        const gameName = card.dataset.name || 'Cognitive Challenge';
+
+        // STRICT LOCK: Do not allow launching locked modules!
+        if (isLocked) {
+          try { SFXLib.incorrect?.() || SFXLib.playError?.(); } catch (err) {}
+          this._flashLockedNotice(gameName);
+          return;
+        }
 
         try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (err) {}
         this.hide();
         EventBus.emit('catalogue:select', {
-          gameId: targetGame,
-          originalId,
+          gameId,
           name: gameName
         });
       });
     });
+  }
+
+  _flashLockedNotice(gameName) {
+    let notice = document.getElementById('cat-lock-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'cat-lock-notice';
+      notice.style.cssText = `
+        position: fixed;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(220, 38, 38, 0.95);
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-family: var(--font-display, 'Outfit', sans-serif);
+        font-size: 0.95rem;
+        font-weight: 700;
+        z-index: 9999;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        border: 1px solid #f87171;
+        transition: opacity 0.3s ease;
+        text-align: center;
+        pointer-events: none;
+      `;
+      document.body.appendChild(notice);
+    }
+    notice.textContent = `🔒 "${gameName}" is currently locked and under facility development. Please select an active research chamber.`;
+    notice.style.opacity = '1';
+    clearTimeout(this._noticeTimer);
+    this._noticeTimer = setTimeout(() => {
+      if (notice) notice.style.opacity = '0';
+    }, 2800);
   }
 
   async show(opts = {}) {

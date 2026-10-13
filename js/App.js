@@ -248,7 +248,8 @@ export class App {
 
     const GameCls = GAME_CLASSES[gameId];
     if (!GameCls) {
-      console.warn(`Game ${gameId} not implemented yet in Tier 1. Opening Catalogue.`);
+      console.warn(`Game ${gameId} is locked / not implemented yet.`);
+      this.hud?.flashPopup(`MODULE LOCKED: UNDER FACILITY CONSTRUCTION`, '#ef4444');
       this.catalogue?.show();
       return;
     }
