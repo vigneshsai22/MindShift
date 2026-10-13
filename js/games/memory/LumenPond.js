@@ -338,17 +338,7 @@ export class LumenPond extends GameBase {
       EventBus.emit('hud:subtitle', { text: '🟢 YOUR TURN: Tap the glowing lily pads in sequence!' });
     });
 
-    // ── Pointer & Touch Listeners ───────────────────────────
-    const canvas = document.querySelector('#three-canvas') || window;
-    this.listen(canvas, 'pointermove', (e) => this._onPointerMove(e));
-    this.listen(canvas, 'pointerdown', (e) => this._onPointerDown(e));
-    if (canvas !== window) {
-      this.listen(canvas, 'touchstart', (e) => {
-        if (e.touches && e.touches.length > 0) {
-          this._onPointerDown(e.touches[0]);
-        }
-      }, { passive: true });
-    }
+    // ── Unified Input handled via registerTarget in InputManager ─────────────
   }
 
   start(levelParams) {
@@ -515,6 +505,11 @@ export class LumenPond extends GameBase {
   }
 
   _handlePlayerInput(padIndex) {
+    if (!this._inputActive || this.paused || this.finished) return;
+    const now = performance.now();
+    if (this._lastInputTime && (now - this._lastInputTime < 220)) return;
+    this._lastInputTime = now;
+
     this._activatePad(padIndex, 0.35);
     this._playerSeq.push(padIndex);
 
