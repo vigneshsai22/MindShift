@@ -2518,6 +2518,71 @@
   font-weight: 600;
   font-style: italic;
 }
+.cat-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cat-subtitle {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin: 0;
+}
+.cat-playable-badge {
+  font-size: 0.72rem;
+  background: rgba(0, 242, 254, 0.15);
+  border: 1px solid #00f2fe;
+  color: #00f2fe;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.cat-wing-badge {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.catalogue-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding: 16px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.catalogue-hint {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+.lm-difficulty-guide {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.lm-guide-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid;
+}
+.lm-node-tier {
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+}
 
 /* LEVEL MAP OVERLAY */
 .level-map-overlay {

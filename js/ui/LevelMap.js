@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    LevelMap.js — Standard Level Selection Screen (Levels 1 to 30)
-   Clean, unified 30-level grid with star ratings and progress.
+   Clean, unified 30-level grid with star ratings, difficulty tiers,
+   and direct level launching for all cognitive challenges.
    ═══════════════════════════════════════════════════════════════ */
 
 import { EventBus } from '../core/EventBus.js';
@@ -15,8 +16,8 @@ export class LevelMap {
    * @param {Function} opts.isUnlocked - (level) => boolean
    */
   constructor(opts = {}) {
-    this._gameId     = opts.gameId;
-    this._gameName   = opts.gameName || 'Challenge';
+    this._gameId     = opts.gameId || 'lumen-pond';
+    this._gameName   = opts.gameName || 'Cognitive Challenge';
     this._getStars   = opts.getStars || (() => 0);
     this._isUnlocked = opts.isUnlocked || (() => true);
     this._container  = null;
@@ -40,9 +41,21 @@ export class LevelMap {
         `<span class="lm-star ${i < stars ? 'lm-star-filled' : ''}">★</span>`
       ).join('');
 
+      let tierBadge = 'Lv ' + level;
+      let tierColor = '#10b981';
+      if (level > 25) {
+        tierColor = '#ef4444'; // Peak
+      } else if (level > 15) {
+        tierColor = '#a855f7'; // Advanced
+      } else if (level > 5) {
+        tierColor = '#00f2fe'; // Intermediate
+      }
+
       nodesHtml += `
         <button class="lm-node ${unlocked ? '' : 'lm-locked'} ${stars > 0 ? 'lm-cleared' : ''}"
-                data-level="${level}" ${unlocked ? '' : 'disabled'}>
+                data-level="${level}" ${unlocked ? '' : 'disabled'}
+                title="Level ${level} · Difficulty Elo ${600 + 30 * (level - 1)}">
+          <span class="lm-node-tier" style="color:${tierColor};font-size:0.65rem;font-weight:700;">D-${600 + 30 * (level - 1)}</span>
           <span class="lm-node-num">${level}</span>
           <div class="lm-node-stars">${starsHtml}</div>
         </button>
@@ -54,12 +67,20 @@ export class LevelMap {
         <div class="lm-header">
           <button class="lm-back" id="lm-back">← Back to Catalogue</button>
           <div class="lm-header-center">
-            <h2 class="lm-title">${this._gameName}</h2>
-            <span class="lm-subtitle">Select Level (1 – 30)</span>
+            <h2 class="lm-title" id="lm-game-title">${this._gameName}</h2>
+            <span class="lm-subtitle">Select Challenge Level (1 – 30) of Increasing Difficulty</span>
           </div>
           <div class="lm-stats" id="lm-stats">0 / 30 Cleared</div>
         </div>
-        <div class="lm-grid">
+
+        <div class="lm-difficulty-guide">
+          <span class="lm-guide-pill" style="color:#10b981;border-color:rgba(16,185,129,0.3)">🟢 Calibration (Lv 1–5)</span>
+          <span class="lm-guide-pill" style="color:#00f2fe;border-color:rgba(0,242,254,0.3)">🔵 Intermediate (Lv 6–15)</span>
+          <span class="lm-guide-pill" style="color:#a855f7;border-color:rgba(168,85,247,0.3)">🟣 Advanced (Lv 16–25)</span>
+          <span class="lm-guide-pill" style="color:#ef4444;border-color:rgba(239,68,68,0.3)">🔴 Neural Peak (Lv 26–30)</span>
+        </div>
+
+        <div class="lm-grid" id="lm-grid">
           ${nodesHtml}
         </div>
       </div>
@@ -74,7 +95,7 @@ export class LevelMap {
   _bindEvents() {
     // Back button
     this._container.querySelector('#lm-back')?.addEventListener('click', () => {
-      SFXLib.click?.() || SFXLib.playClick?.();
+      try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (e) {}
       this.hide();
       EventBus.emit('levelmap:back');
     });
@@ -85,7 +106,7 @@ export class LevelMap {
       node.addEventListener('click', () => {
         if (node.disabled) return;
         const level = parseInt(node.dataset.level, 10);
-        SFXLib.levelStart?.() || SFXLib.click?.();
+        try { SFXLib.levelStart?.() || SFXLib.click?.(); } catch (e) {}
         this.hide();
         EventBus.emit('levelmap:select', { gameId: this._gameId, level });
       });
@@ -96,7 +117,7 @@ export class LevelMap {
     this._gameId = gameId;
     this._gameName = gameName;
     if (!this._built) this.build();
-    const titleEl = this._container?.querySelector('.lm-title');
+    const titleEl = this._container?.querySelector('#lm-game-title') || this._container?.querySelector('.lm-title');
     if (titleEl) titleEl.textContent = gameName;
     this._refresh();
   }
@@ -104,9 +125,9 @@ export class LevelMap {
   show() {
     if (!this._built) this.build();
     this._refresh();
-    this._container.classList.add('visible');
+    this._container?.classList.add('visible');
     this._visible = true;
-    SFXLib.whoosh?.();
+    try { SFXLib.whoosh?.(); } catch (e) {}
   }
 
   hide() {
@@ -120,7 +141,7 @@ export class LevelMap {
   }
 
   _refresh() {
-    const titleEl = this._container?.querySelector('.lm-title');
+    const titleEl = this._container?.querySelector('#lm-game-title') || this._container?.querySelector('.lm-title');
     if (titleEl && this._gameName) titleEl.textContent = this._gameName;
 
     let clearedCount = 0;
@@ -147,7 +168,7 @@ export class LevelMap {
 
     const statsEl = this._container?.querySelector('#lm-stats');
     if (statsEl) {
-      statsEl.textContent = `${clearedCount}/30 Cleared · ★ ${totalStars}`;
+      statsEl.textContent = `${clearedCount} / 30 Cleared · ★ ${totalStars}`;
     }
   }
 

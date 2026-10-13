@@ -15,7 +15,11 @@
   - [x] First-user-gesture Web Audio context resume.
   - [x] Built automated input test suite `window.__dev.testInput()` and `window.__dev.testAllGames()`.
   - [x] Verified 100% hit rate across all 6 Tier 1 games (`lumen-pond`, `terminal-hack`, `hologram-matrix`, `rotation-core`, `reflex-arena`, `anomaly-rooms`).
-  - [x] Verified interactive click/touch flow in Catalogue, LevelMap, and 3 active games via browser subagent.
+  - [x] **Game Catalogue & 30-Level Selection Flow**:
+    - Fixed empty `#cat-grid` bug with robust fallback data and dynamic registry fetching in `CatalogueTerminal.js`.
+    - Removed auto-launch of Lumen Pond on "Enter the Mind Lab"; both entry buttons now allow choosing any cognitive domain.
+    - Connected all cards to `LevelMap.js` allowing players to select any difficulty level from 1 to 30.
+    - Added difficulty tier guidance (Calibration 1–5, Intermediate 6–15, Advanced 16–25, Neural Peak 26–30).
 
 - [ ] **STAGE 2: RESPONSIVENESS AND PERFORMANCE**
   - Target: 60 FPS on medium quality, input-to-visual latency < 100 ms.

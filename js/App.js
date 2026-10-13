@@ -103,6 +103,9 @@ export class App {
     try {
       const res = await fetch('js/data/games.json');
       this.gamesData = await res.json();
+      if (this.catalogue) {
+        this.catalogue.setGamesData(this.gamesData);
+      }
     } catch (e) {
       console.warn('Could not fetch games.json, using fallback registry:', e);
       this.gamesData = { games: [] };
@@ -205,10 +208,12 @@ export class App {
       await this.start3D();
       this.mode = 'assessment';
       this._assessmentIndex = 0;
-      const firstGame = ASSESSMENT_ORDER[0];
-      this.loadGame(firstGame, 1);
+      await this.catalogue?.show({
+        title: '🔬 Mind Lab Facility — Cognitive Assessment',
+        subtitle: 'Select any cognitive domain to begin your evaluation, then choose Level 1–30'
+      });
       setTimeout(() => {
-        this.hud?.flashPopup('AI DIRECTOR: ASSESSMENT MODE ACTIVE', '#00f2fe');
+        this.hud?.flashPopup('MIND LAB: SELECT COGNITIVE CHALLENGE & LEVEL', '#00f2fe');
       }, 300);
     } catch (err) {
       console.error('[MindShift] startAssessmentMode failed:', err);
@@ -220,7 +225,10 @@ export class App {
     try {
       await this.start3D();
       this.mode = 'practice';
-      this.catalogue?.show();
+      await this.catalogue?.show({
+        title: '🧠 Cognitive Game Catalogue — All Wings',
+        subtitle: 'Explore all 30 facility games across 6 cognitive wings — select any challenge & level (1–30)'
+      });
     } catch (err) {
       console.error('[MindShift] startFreePractice failed:', err);
       alert('Could not start 3D mode. Check browser console (F12) for details.');
@@ -499,11 +507,13 @@ export class App {
     });
 
     // Listen to Catalogue select event -> opens Level Map
-    EventBus.on('catalogue:select', ({ gameId }) => {
+    EventBus.on('catalogue:select', ({ gameId, originalId, name }) => {
       this.catalogue?.hide();
-      const meta = this.gamesData?.games?.find(g => g.id === gameId);
+      const meta = this.gamesData?.games?.find(g => g.id === (originalId || gameId)) ||
+                   this.gamesData?.games?.find(g => g.id === gameId);
       this.activeGameId = gameId;
-      this.levelMap.setGame(gameId, meta?.name || gameId);
+      const displayName = name || meta?.name || gameId;
+      this.levelMap.setGame(gameId, displayName);
       this.levelMap.show();
     });
 
