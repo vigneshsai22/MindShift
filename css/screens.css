@@ -2862,6 +2862,25 @@
   filter: grayscale(1);
 }
 
+.result-breakdown {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: -4px 0 4px 0;
+}
+.res-breakdown-pill {
+  background: rgba(0, 242, 254, 0.12);
+  border: 1px solid rgba(0, 242, 254, 0.4);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.15);
+  padding: 5px 14px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #00f2fe;
+  letter-spacing: 0.02em;
+}
+
 .result-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;

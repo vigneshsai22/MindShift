@@ -31,14 +31,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
 
   if (params.has('game')) {
-    // Deep-link: ?game=lumen-pond&level=3 → skip home, go straight to game
+    // Deep-link: ?game=lumen-pond&level=3&autoplay=1
     const g  = params.get('game');
     const lv = parseInt(params.get('level'), 10) || 1;
-    try {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (e) {}
+    const shouldAutoPlay = params.has('autoplay') || params.has('bot');
+    const isFast = params.has('fast');
+    const roundDelay = parseFloat(params.get('delay')) || null;
+    const skill = parseFloat(params.get('skill')) || 0.92;
+
     setTimeout(() => {
-      app.start3D().then(() => app.loadGame(g, lv));
+      app.start3D().then(() => {
+        app.loadGame(g, lv);
+        if (shouldAutoPlay) {
+          setTimeout(() => {
+            window.__dev?.autoPlay({ fast: isFast, roundDelay, skill });
+          }, 700);
+        }
+      });
     }, 400);
 
   } else if (params.has('legacy')) {
@@ -46,6 +55,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
       engine.navigate('game-mode-select');
     }, 400);
+
+  } else if (params.has('benchmark') || params.has('duration_test')) {
+    // Full duration benchmark runner across levels [1, 5, 10, 15, 20, 25, 30]
+    const isFast = params.has('fast');
+    const testLevels = params.get('levels') ? params.get('levels').split(',').map(n => parseInt(n, 10)) : [1, 5, 10, 15, 20, 25, 30];
+    const games = params.get('games') ? params.get('games').split(',') : undefined;
+
+    setTimeout(async () => {
+      console.log('[Benchmark] Launching duration benchmark...');
+      const results = await window.__dev?.runDurationBenchmark({ fast: isFast, levels: testLevels, games });
+
+      const panel = document.createElement('div');
+      panel.id = 'benchmark-results-panel';
+      panel.style.cssText = 'position:fixed;bottom:15px;left:15px;right:15px;max-height:85vh;overflow-y:auto;background:rgba(8,16,32,0.96);border:2px solid #00f2fe;border-radius:12px;padding:20px;z-index:999999;font-family:monospace;color:#f8fafc;box-shadow:0 0 40px rgba(0,242,254,0.4);';
+      let tableHtml = '<h2 style="color:#00f2fe;margin:0 0 10px 0;">📊 DURATION BENCHMARK (Levels 1, 5, 10, 15, 20, 25, 30)</h2><table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="background:#1e293b;color:#00f2fe;"><th style="padding:6px;border:1px solid #334155;text-align:left;">Game</th><th style="padding:6px;border:1px solid #334155;text-align:center;">Level</th><th style="padding:6px;border:1px solid #334155;text-align:center;">Rounds</th><th style="padding:6px;border:1px solid #334155;text-align:center;">Duration (s)</th><th style="padding:6px;border:1px solid #334155;text-align:center;">Target Range</th><th style="padding:6px;border:1px solid #334155;text-align:center;">Result</th></tr>';
+      for (const res of results || []) {
+        const targetMin = res.level <= 10 ? 45 : (res.level <= 20 ? 60 : 75);
+        const targetMax = res.level <= 10 ? 75 : (res.level <= 20 ? 100 : 120);
+        const inRange = res.duration >= (targetMin - 5) && res.duration <= (targetMax + 5);
+        tableHtml += `<tr><td style="padding:6px;border:1px solid #334155;font-weight:bold;">${res.game}</td><td style="padding:6px;border:1px solid #334155;text-align:center;">Lv ${res.level}</td><td style="padding:6px;border:1px solid #334155;text-align:center;">${res.rounds}</td><td style="padding:6px;border:1px solid #334155;text-align:center;font-weight:bold;color:${inRange ? '#10b981' : '#f59e0b'};">${res.duration}s</td><td style="padding:6px;border:1px solid #334155;text-align:center;color:#94a3b8;">${targetMin}–${targetMax}s</td><td style="padding:6px;border:1px solid #334155;text-align:center;color:${res.pass ? '#10b981' : '#ef4444'};font-weight:bold;">${res.pass ? '✅ PASS' : '❌ FAIL'}</td></tr>`;
+      }
+      tableHtml += '</table>';
+      panel.innerHTML = tableHtml;
+      document.body.appendChild(panel);
+    }, 500);
 
   } else if (params.has('autotest') || params.has('test')) {
     // Automated input self-test across all games

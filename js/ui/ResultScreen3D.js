@@ -39,6 +39,11 @@ export class ResultScreen3D {
           <span class="star" data-index="3">⭐</span>
         </div>
 
+        <div class="result-breakdown" id="res-breakdown">
+          <span class="res-breakdown-pill" id="res-rounds-pill">5 / 5 Rounds Correct</span>
+          <span class="res-breakdown-pill" id="res-lives-pill">3 Lives Left ❤️</span>
+        </div>
+
         <div class="result-metrics">
           <div class="res-metric-item">
             <span class="res-metric-label">SCORE</span>
@@ -150,6 +155,18 @@ export class ResultScreen3D {
     if (badgeEl) {
       badgeEl.textContent = passed ? 'TRIAL COMPLETE' : (timedOut ? 'TIME EXPIRED' : 'TRIAL FAILED');
       badgeEl.style.color = passed ? 'var(--color-accent, #00f2fe)' : '#ff4d4d';
+    }
+
+    const rounds = data.rounds || data.extra?.rounds || 5;
+    const correctRounds = data.correctRounds !== undefined ? data.correctRounds : (data.extra?.correctRounds !== undefined ? data.extra.correctRounds : Math.round(accuracy * rounds));
+    const livesRemaining = data.livesRemaining !== undefined ? data.livesRemaining : (data.extra?.livesRemaining !== undefined ? data.extra.livesRemaining : (passed ? 2 : 0));
+
+    const roundsPill = this._container.querySelector('#res-rounds-pill');
+    const livesPill = this._container.querySelector('#res-lives-pill');
+    if (roundsPill) roundsPill.textContent = `${correctRounds} / ${rounds} Rounds Correct`;
+    if (livesPill) {
+      livesPill.textContent = `${livesRemaining} Lives Left ❤️`;
+      livesPill.style.color = livesRemaining > 1 ? '#10b981' : (livesRemaining === 1 ? '#f59e0b' : '#ef4444');
     }
 
     if (scoreEl) scoreEl.textContent = Math.round(score).toLocaleString();

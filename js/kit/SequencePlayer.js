@@ -40,6 +40,12 @@ export class SequencePlayer {
     return this;
   }
 
+  /** Alias for interval / step duration in seconds */
+  setInterval(sec) {
+    this._stepDelay = Math.round(sec * 1000);
+    return this;
+  }
+
   /** Register callbacks */
   onStep(fn)         { this._onStep = fn; return this; }
   onPlayStep(fn)     { this._onPlayStep = fn; return this; }

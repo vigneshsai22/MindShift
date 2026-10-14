@@ -23,3 +23,11 @@
 - Decision: Fix relative module paths in JuiceFX.js (../../core/ instead of ../core/).
 - Decision: Add async readiness check in MainMenu buttons to ensure robust initialization and user feedback.
 - Decision: Add uniform Back navigation buttons to every page and overlay (HUD3D top bar, CatalogueTerminal header, ResultScreen3D actions, DifficultySelect, GameScreen controls, ResultsScreen, and AnalyticsDashboard header) allowing users to cleanly return to their previous screen.
+- Decision: Re-architect all 6 Tier 1 games into multi-round missions where a level comprises 5 rounds (Level 1) ramping to 10 rounds (Level 30) with within-level difficulty scaling, eliminating single-click finishes.
+- Decision: Standardize 3 lives per level with win condition requiring >= 60% accuracy and >= 1 life remaining; emit trial:complete once per level carrying aggregated metrics (rounds, correctRounds, livesLost, durationSec) to keep Elo engine and Director FSM unchanged.
+- Decision: Implement 3-step onboarding pipeline (Step 1: Goal/Controls briefing modal, Step 2: Level 0 interactive practice round with infinite retries, Step 3: 3-second animated countdown before Level 1 starts) persisted in localStorage.
+- Decision: Add top-level one-sentence Goal Bar, radial round countdown timer, lives meter, and round progress bar to HUD3D.
+- Decision: Provide informative visual/audio failure feedback across all games explaining exact cause of failure (e.g., missed node, logic parity mismatch, chiral enantiomer selected, decoy hazard intercepted).
+- Decision: Support dual interaction model with explicit keyboard hotkeys (1-7, Space, Arrow keys) alongside pointer events, with hover illumination and responsive proxies.
+- Decision: Provide in-game Accessibility suite (Extra Time 1.5x timer, Reduced Motion, High Contrast mode) accessible via Cockpit header and Pause menu with localStorage persistence.
+- Decision: Integrate automated duration benchmark on window.__dev.runDurationBenchmark measuring and verifying all 6 games across levels 1, 5, 10, 15, 20, 25, 30 against target duration windows (45-75s, 60-100s, 75-120s).

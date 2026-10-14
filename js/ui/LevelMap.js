@@ -80,6 +80,13 @@ export class LevelMap {
           <span class="lm-guide-pill" style="color:#ef4444;border-color:rgba(239,68,68,0.3)">🔴 Neural Peak (Lv 26–30)</span>
         </div>
 
+        <div class="lm-practice-banner" style="display:flex;justify-content:center;margin:10px 0 14px 0;">
+          <button class="lm-btn-practice" id="lm-practice" style="background:rgba(16,185,129,0.15);border:1px solid #10b981;color:#10b981;padding:8px 22px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s;">
+            <span>🛡️</span>
+            <span>Launch Level 0 — Interactive Practice Calibration</span>
+          </button>
+        </div>
+
         <div class="lm-grid" id="lm-grid">
           ${nodesHtml}
         </div>
@@ -98,6 +105,13 @@ export class LevelMap {
       try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (e) {}
       this.hide();
       EventBus.emit('levelmap:back');
+    });
+
+    // Level 0 Practice button
+    this._container.querySelector('#lm-practice')?.addEventListener('click', () => {
+      try { SFXLib.levelStart?.() || SFXLib.click?.(); } catch (e) {}
+      this.hide();
+      EventBus.emit('levelmap:select', { gameId: this._gameId, level: 0 });
     });
 
     // Level nodes

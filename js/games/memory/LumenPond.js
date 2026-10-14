@@ -19,7 +19,8 @@ export class LumenPond extends GameBase {
       name: 'Lumen Pond',
       skill: 'memory',
       tags: ['working-memory', 'auditory-recall', 'sequencing'],
-      palette: { primary: '#00f2fe', secondary: '#003344', accent: '#38bdf8' }
+      palette: { primary: '#00f2fe', secondary: '#003344', accent: '#38bdf8' },
+      goalText: 'Repeat the illuminated lily pads in exact sequence.'
     });
 
     this.pads = [];
@@ -342,35 +343,78 @@ export class LumenPond extends GameBase {
   }
 
   start(levelParams) {
+    // Responsive Camera Framing
+    if (this.camera) {
+      this.camera.position.set(0, 4.8, 5.5);
+      this.camera.lookAt(0, -0.1, 0);
+    }
     super.start(levelParams);
+  }
 
-    // Difficulty curve: level 1-30 scales sequence length from 3 to 8
-    const len = Math.min(8, Math.floor(3 + (this.level - 1) * 0.20));
+  setupRound(roundIndex, ramp, levelParams = {}) {
+    if (this.finished) return;
+
+    // Determine sequence length for this round:
+    let len;
+    if (this.isPractice) {
+      len = 2;
+    } else {
+      const minLen = levelParams.seqLengthMin || Math.min(6, Math.floor(3 + (this.level - 1) * 0.12));
+      const maxLen = levelParams.seqLengthMax || (minLen + 1);
+      len = Math.min(8, Math.round(minLen + ramp * (maxLen - minLen)));
+    }
     this._seqLength = len;
     this._targetSeq = [];
     this._playerSeq = [];
     this._inputActive = false;
     this._hoveredPad = null;
 
-    // Pick random sequence
+    // Pick sequence ensuring adjacent nodes are different for clear musicality
+    let lastPad = -1;
     for (let i = 0; i < this._seqLength; i++) {
-      this._targetSeq.push(Math.floor(Math.random() * this.pads.length));
+      let nextPad;
+      do {
+        nextPad = Math.floor(Math.random() * this.pads.length);
+      } while (nextPad === lastPad && this.pads.length > 1);
+      this._targetSeq.push(nextPad);
+      lastPad = nextPad;
     }
 
-    // Responsive Camera Framing
-    if (this.camera) {
-      this.camera.position.set(0, 4.8, 5.5);
-      this.camera.lookAt(0, -0.1, 0);
+    // Configure playback pacing
+    const stepDuration = levelParams.stepDuration || Math.max(0.35, 0.55 - (this.level - 1) * 0.007);
+    const interval = levelParams.interval || Math.max(0.14, 0.25 - (this.level - 1) * 0.004);
+    if (this.sequencePlayer) {
+      if (typeof this.sequencePlayer.setStepDuration === 'function') {
+        this.sequencePlayer.setStepDuration(stepDuration);
+      }
+      if (typeof this.sequencePlayer.setInterval === 'function') {
+        this.sequencePlayer.setInterval(interval);
+      }
     }
 
-    EventBus.emit('hud:subtitle', { text: `👀 MEMORIZE SEQUENCE: ${this._seqLength} chords incoming...` });
+    if (this.isPractice) {
+      EventBus.emit('hud:subtitle', {
+        text: '🟢 PRACTICE ROUND: Memorize the 2 glowing pads, then tap them in order!'
+      });
+    } else {
+      EventBus.emit('hud:subtitle', {
+        text: `👀 MEMORIZE SEQUENCE: Round ${roundIndex} / ${this.totalRounds} (${this._seqLength} notes)...`
+      });
+    }
 
-    // Begin sequence playback after short atmospheric delay
+    // Playback sequence after short atmospheric readiness delay
     this.setTimeout(() => {
-      if (this.sequencePlayer) {
+      if (this.sequencePlayer && !this.finished && this.roundActive) {
         this.sequencePlayer.play(this._targetSeq);
       }
-    }, 900);
+    }, 750);
+  }
+
+  teardownRound(correct, reason) {
+    this._inputActive = false;
+    if (this.sequencePlayer) {
+      this.sequencePlayer.stop();
+    }
   }
 
   _activatePad(index, duration = 0.45) {
@@ -505,10 +549,11 @@ export class LumenPond extends GameBase {
   }
 
   _handlePlayerInput(padIndex) {
-    if (!this._inputActive || this.paused || this.finished) return;
+    if (!this._inputActive || this.paused || this.finished || !this.roundActive) return;
     const now = performance.now();
-    if (this._lastInputTime && (now - this._lastInputTime < 220)) return;
+    if (this._lastInputTime && (now - this._lastInputTime < 200)) return;
     this._lastInputTime = now;
+    this.registerPlayerAction();
 
     this._activatePad(padIndex, 0.35);
     this._playerSeq.push(padIndex);
@@ -517,27 +562,41 @@ export class LumenPond extends GameBase {
     if (padIndex === this._targetSeq[step]) {
       // Step correct
       SFXLib.playNoteSuccess();
-      this.recordResponse(true);
 
       // Sequence completed!
       if (this._playerSeq.length === this._targetSeq.length) {
         this._inputActive = false;
-        EventBus.emit('hud:subtitle', { text: '✨ Resonance locked! Neural synchrony achieved.' });
+        EventBus.emit('hud:subtitle', { text: '✨ Resonance locked! Harmonic sequence matched.' });
         this.setTimeout(() => {
-          this.completeTrial(true, 1.0);
-        }, 600);
+          this.endRound(true);
+        }, 500);
       }
     } else {
       // Incorrect step
       this._inputActive = false;
-      this.recordResponse(false);
       SFXLib.playError();
-      EventBus.emit('hud:subtitle', { text: '⚠️ Harmonic discord! Sequence lost.' });
+      const expected = this._targetSeq[step];
 
+      // Briefly illuminate the missed pad to show what was correct
       this.setTimeout(() => {
-        const accuracy = Math.max(0, step / this._targetSeq.length);
-        this.completeTrial(false, accuracy);
-      }, 800);
+        this._activatePad(expected, 0.7);
+      }, 250);
+
+      if (this.isPractice) {
+        EventBus.emit('hud:subtitle', {
+          text: `⚠️ Guided calibration: Node #${expected + 1} was next. Retrying round...`
+        });
+        this.setTimeout(() => {
+          this.setupRound(this.currentRound, 0, this.levelParams);
+        }, 1200);
+      } else {
+        EventBus.emit('hud:subtitle', {
+          text: `⚠️ Harmonic discord! Missed Node #${expected + 1} (Sequence lost).`
+        });
+        this.setTimeout(() => {
+          this.endRound(false, `Wrong pad: tapped #${padIndex + 1} instead of #${expected + 1}`);
+        }, 700);
+      }
     }
   }
 
@@ -591,6 +650,31 @@ export class LumenPond extends GameBase {
         }
       }
       this._particles.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+
+  botPlayRound(willWin = true) {
+    if (!this.roundActive || this.finished) return;
+    if (willWin) {
+      // Visual feedback of sequence input
+      this._targetSeq.forEach((padIdx, i) => {
+        this.setTimeout(() => {
+          if (!this.finished) this._activatePad(padIdx, 0.25);
+        }, i * 120);
+      });
+      this.setTimeout(() => {
+        if (!this.finished && this.roundActive) {
+          this.endRound(true);
+        }
+      }, (this._targetSeq.length * 120) + 250);
+    } else {
+      const wrong = (this._targetSeq[0] + 1) % this.pads.length;
+      this._activatePad(wrong, 0.35);
+      this.setTimeout(() => {
+        if (!this.finished && this.roundActive) {
+          this.endRound(false, 'Missed harmonic sequence');
+        }
+      }, 350);
     }
   }
 

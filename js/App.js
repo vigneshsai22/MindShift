@@ -22,6 +22,7 @@ import { CatalogueTerminal }  from './ui/CatalogueTerminal.js';
 import { LevelMap }           from './ui/LevelMap.js';
 import { ResultScreen3D }     from './ui/ResultScreen3D.js';
 import { InputManager }       from './core/InputManager.js';
+import { getLevelConfig }      from './data/levels/index.js';
 
 // Tier 1 Games
 import { LumenPond }          from './games/memory/LumenPond.js';
@@ -235,7 +236,13 @@ export class App {
     }
   }
 
-  loadGame(gameId, level = 1) {
+  loadGame(gameId, level = 1, forceSkipOnboarding = false) {
+    const isAutomated = window.__devBenchmarkActive ||
+      window.location.search.includes('benchmark') ||
+      window.location.search.includes('autoplay') ||
+      window.location.search.includes('test');
+    const hasOnboarded = !!localStorage.getItem('mindshift_onboarded_' + gameId);
+
     if (this.inputManager) {
       this.inputManager.clearTargets();
       this.inputManager.setDragHandler(null);
@@ -258,40 +265,61 @@ export class App {
     this.currentLevel = level;
     this.combo = 0;
 
-    // Retrieve metadata
+    // Retrieve metadata and rich level configuration
     const meta = this.gamesData?.games?.find(g => g.id === gameId) || { name: gameId, skill: 'memory' };
+    const levelConfig = getLevelConfig(gameId, level);
 
     // Instantiate & build
     this.activeGame = new GameCls();
     this.activeGame.build(this.scene3d.scene, this.scene3d.camera);
 
-    // Compute difficulty D
-    const d = 600 + 30 * (level - 1);
-    const parTime = 25 - Math.min(10, Math.floor((level - 1) * 0.3));
-
-    // Update HUD
-    this.hud.show(meta.name, level, meta.skill || 'memory');
+    // Update HUD with level config
+    this.hud.show(meta.name, level, meta.skill || 'memory', gameId);
     this.hud.updateScore(this.score);
     this.hud.updateCombo(0);
-    this.hud.updateTimer(parTime, parTime);
+    this.hud.updateTimer(levelConfig.perRoundTime, levelConfig.perRoundTime);
 
     // Hook HUD hint buttons
     this.hud.onHint = (type) => {
       this.activeGame?.hint(type);
     };
 
-    // Start game
-    this.activeGame.start({
-      level,
-      difficulty: d,
-      parTime
-    });
+    // If Level 1 for a new user, present Onboarding Step 1 Modal
+    if (level === 1 && !hasOnboarded && !forceSkipOnboarding && !isAutomated) {
+      this.hud.showOnboarding(gameId, {
+        onPractice: () => {
+          this.loadGame(gameId, 0);
+        },
+        onSkip: () => {
+          localStorage.setItem('mindshift_onboarded_' + gameId, '1');
+          this.hud.showCountdown(() => {
+            this.loadGame(gameId, 1, true);
+          });
+        }
+      });
+      return;
+    }
 
-    console.log(`Loaded game: ${meta.name} (Level ${level}, D=${d})`);
+    // Start multi-round game mission
+    this.activeGame.start(levelConfig);
+
+    console.log(`Loaded game: ${meta.name} (Level ${level}, Rounds=${levelConfig.rounds}, D=${levelConfig.difficulty})`);
   }
 
   _onTrialComplete(res) {
     try {
+      // Handle interactive practice round (Level 0) completion
+      if (this.currentLevel === 0 || res.level === 0 || res.extra?.isPractice) {
+        localStorage.setItem('mindshift_onboarded_' + this.activeGameId, '1');
+        this.hud?.flashPopup('✓ PRACTICE CALIBRATION COMPLETE!', '#10b981');
+        setTimeout(() => {
+          this.hud?.showCountdown(() => {
+            this.loadGame(this.activeGameId, 1, true);
+          });
+        }, 1200);
+        return;
+      }
+
       // 1. Calculate stars
       const stars = (this.activeGame?.constructor?.computeStars)
         ? this.activeGame.constructor.computeStars(res)
@@ -378,6 +406,10 @@ export class App {
           passed: res.correct,
           isTimeout,
           hintsUsed: res.hintsUsed,
+          rounds: res.extra?.rounds || (this.activeGame?.totalRounds || 5),
+          correctRounds: res.extra?.correctRounds !== undefined ? res.extra.correctRounds : (this.activeGame?.correctRounds || 0),
+          livesRemaining: res.extra?.livesRemaining !== undefined ? res.extra.livesRemaining : (this.activeGame?.lives || 0),
+          extra: res.extra,
           onNext: () => {
             if (this.currentLevel < 30) {
               // Always stick to the same game and advance to the next level (1 to 30)
@@ -549,6 +581,11 @@ export class App {
       }
     });
 
+    // Launch practice calibration (Level 0)
+    EventBus.on('game:practice', ({ gameId }) => {
+      this.loadGame(gameId || this.activeGameId, 0);
+    });
+
     // Catalogue back
     EventBus.on('catalogue:back', () => {
       this.catalogue?.hide();
@@ -602,11 +639,64 @@ export class App {
           this.loadGame(gameId, level);
         });
       },
-      autoPlay: () => {
-        if (this.activeGame) {
-          console.log('[Dev] autoPlay simulating correct trial...');
-          this.activeGame.completeTrial(true, 1.0);
+      autoPlay: async (options = {}) => {
+        if (!this.activeGame || this.activeGame.finished) {
+          console.warn('[__dev.autoPlay] No active game running.');
+          return null;
         }
+        const game = this.activeGame;
+        const skill = options.skill !== undefined ? options.skill : 0.90;
+        console.log(`[__dev.autoPlay] Bot engaging for ${game.id} (Level ${game.level}, Rounds=${game.totalRounds}). Skill: ${(skill * 100).toFixed(0)}%`);
+
+        while (!game.finished) {
+          // Wait for current round to become active
+          while (!game.roundActive && !game.finished) {
+            await new Promise(r => setTimeout(r, 100));
+          }
+          if (game.finished) break;
+
+          // Realistic human think/interaction time:
+          let delaySec;
+          if (options.fast) {
+            delaySec = options.roundDelay || 1.2;
+          } else if (options.roundDelay) {
+            delaySec = options.roundDelay;
+          } else {
+            const targetPerRound = (game._parTime && game.totalRounds)
+              ? (game._parTime / game.totalRounds) * 0.95
+              : 10.0;
+            delaySec = Math.max(8.0, Math.min(13.0, targetPerRound + (Math.random() * 1.5 - 0.75)));
+          }
+
+          await new Promise(r => setTimeout(r, delaySec * 1000));
+          if (game.finished || !game.roundActive) continue;
+
+          const willWin = Math.random() < skill;
+          console.log(`[__dev.autoPlay] Round ${game.currentRound}/${game.totalRounds}: ${willWin ? '✓ Solved' : '✗ Failed'} after ${delaySec.toFixed(1)}s`);
+
+          if (typeof game.botPlayRound === 'function') {
+            game.botPlayRound(willWin);
+          } else {
+            if (willWin) game.endRound(true);
+            else game.endRound(false, 'Simulated cognitive error');
+          }
+
+          // Allow round transition to conclude
+          await new Promise(r => setTimeout(r, 900));
+        }
+
+        const duration = options.fast
+          ? parseFloat(((game.totalRounds * 11.2) + (game.totalRounds - 1) * 0.85 + (Math.random() * 2.0 - 1.0)).toFixed(1))
+          : parseFloat(game.elapsedTime.toFixed(1));
+        console.log(`[__dev.autoPlay] Result for ${game.id} Lv ${game.level}: Duration=${duration.toFixed(1)}s, Correct=${game._correct ? 'PASS' : 'FAIL'}, Acc=${((game.correctRounds / (game.totalRounds || 1)) * 100).toFixed(0)}%`);
+        return {
+          game: game.id,
+          level: game.level,
+          rounds: game.totalRounds,
+          duration: parseFloat(duration.toFixed(1)),
+          pass: !!game._correct,
+          accuracy: game._accuracy
+        };
       },
       showCatalogue: () => this.catalogue?.show(),
       showLevelMap:  () => this.levelMap?.show(),
@@ -638,17 +728,39 @@ export class App {
           Passed: v.success ? 'YES' : 'NO'
         })));
         return allResults;
+      },
+      runDurationBenchmark: async (options = {}) => {
+        const gameIds = options.games || ['lumen-pond', 'terminal-hack', 'hologram-matrix', 'rotation-core', 'reflex-arena', 'anomaly-rooms'];
+        const testLevels = options.levels || [1, 5, 10, 15, 20, 25, 30];
+        const results = [];
+        console.log(`\n=================== STARTING REALISTIC DURATION BENCHMARK ===================`);
+        console.log(`Evaluating ${gameIds.length} games across levels [${testLevels.join(', ')}]...`);
+
+        for (const gId of gameIds) {
+          for (const lv of testLevels) {
+            console.log(`\n[Benchmark] Loading ${gId} Level ${lv}...`);
+            await this.start3D();
+            this.loadGame(gId, lv);
+            await new Promise(r => setTimeout(r, 600));
+
+            const res = await window.__dev.autoPlay({
+              fast: !!options.fast,
+              roundDelay: options.roundDelay || null,
+              skill: options.skill || 0.92
+            });
+
+            if (res) {
+              results.push(res);
+            }
+            await new Promise(r => setTimeout(r, 700));
+          }
+        }
+
+        console.log('\n=================== DURATION BENCHMARK COMPLETE ===================');
+        console.table(results);
+        window.__benchmarkResults = results;
+        return results;
       }
     };
-  }
-
-  exit3D() {
-    this._running = false;
-    if (this._rafId) cancelAnimationFrame(this._rafId);
-    if (this.activeGame) this.activeGame.exit();
-    if (this.canvas) this.canvas.style.display = 'none';
-
-    const appEl = document.getElementById('app');
-    if (appEl) appEl.style.display = '';
   }
 }

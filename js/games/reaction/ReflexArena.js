@@ -1,7 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
    ReflexArena.js — Tier 1 Reaction Time Game (3D)
-   Cognitive Domain: Psychomotor speed, reaction time, Go / No-Go inhibition.
-   Rapidly acquires green target drones while inhibiting red hazards.
+   Cognitive Domain: Psychomotor speed, impulse control (Go / No-Go), target interception.
+   Multi-Round Mission: Player intercepts sequential target waves,
+   striking Green synaptic targets and inhibiting Red hazard decoys.
    ═══════════════════════════════════════════════════════════════ */
 
 import * as THREE from 'three';
@@ -16,151 +17,244 @@ export class ReflexArena extends GameBase {
       id: 'reflex-arena',
       name: 'Reflex Arena',
       skill: 'reaction',
-      tags: ['reaction-time', 'go-no-go', 'motor-precision'],
-      palette: { primary: '#ef4444', secondary: '#450a0a', accent: '#f87171' }
+      tags: ['psychomotor-speed', 'go-no-go', 'inhibitory-control'],
+      palette: { primary: '#ef4444', secondary: '#450a0a', accent: '#f87171' },
+      goalText: 'Intercept GREEN synaptic targets instantly; INHIBIT red hazards.'
     });
 
     this.activeTargets = [];
+    this.targetsHitInWave = 0;
+    this.waveQuota = 4;
+    this.spawnTimer = 0;
+    this.spawnInterval = 0.9;
+    this.timeDilation = 1.0;
     this._raycaster = new THREE.Raycaster();
     this._mouse = new THREE.Vector2();
-    this.targetQuota = 6;
-    this.targetsHit = 0;
-    this.spawnTimer = 0;
-    this.spawnInterval = 1.0;
-    this.timeDilation = 1.0;
+    this._nextTargetId = 0;
   }
 
   build(scene, camera) {
     super.build(scene, camera);
 
-    // Reflex dome grid wireframe
-    const domeGeom = new THREE.SphereGeometry(7, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2);
-    const domeMat = new THREE.MeshBasicMaterial({
-      color: 0x331111,
-      wireframe: true,
-      side: THREE.DoubleSide
-    });
-    const dome = new THREE.Mesh(domeGeom, domeMat);
-    dome.position.y = -0.5;
-    this.addObject(dome);
+    camera.position.set(0, 2.0, 5.8);
+    camera.lookAt(0, 2.0, 0);
 
-    // Ambient alert light
-    const redLight = new THREE.PointLight(0xff4444, 1.8, 15);
-    redLight.position.set(0, 4, 0);
-    this.addObject(redLight);
+    // Arena Floor Deck
+    const floorGeom = new THREE.CylinderGeometry(6, 6.4, 0.3, 48);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.3,
+      metalness: 0.8
+    });
+    const floor = new THREE.Mesh(floorGeom, floorMat);
+    floor.position.set(0, -0.15, 0);
+    this.addObject(floor);
+
+    // Glowing Arena Perimeter Ring
+    const ringGeom = new THREE.TorusGeometry(6.0, 0.08, 16, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const ring = new THREE.Mesh(ringGeom, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(0, 0.02, 0);
+    this.addObject(ring);
+
+    // Cylindrical Holographic Wall
+    const cylGeom = new THREE.CylinderGeometry(5.8, 5.8, 4.5, 48, 1, true, -Math.PI * 0.45, Math.PI * 0.9);
+    const cylMat = new THREE.MeshBasicMaterial({
+      color: 0x1e293b,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35
+    });
+    const wall = new THREE.Mesh(cylGeom, cylMat);
+    wall.position.set(0, 2.2, 0);
+    this.addObject(wall);
+
+    // Lighting
+    const aLight = new THREE.PointLight(0xf87171, 2.2, 16);
+    aLight.position.set(0, 4.2, 2);
+    this.addObject(aLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xffedd5, 0x0f172a, 1.2);
+    this.addObject(hemiLight);
 
     const canvas = document.querySelector('#three-canvas') || window;
     this.listen(canvas, 'pointerdown', (e) => this._onPointerDown(e));
-  }
 
-  start(levelParams) {
-    super.start(levelParams);
-
-    if (this.camera) {
-      this.camera.position.set(0, 2, 5.5);
-      this.camera.lookAt(0, 2, 0);
-    }
-
-    this.targetsHit = 0;
-    this.targetQuota = Math.min(10, 5 + Math.floor(this.level / 5));
-    this.spawnInterval = Math.max(0.6, 1.2 - (this.level - 1) * 0.02);
-    this.spawnTimer = 0.3;
-    this.timeDilation = 1.0;
-
-    EventBus.emit('hud:subtitle', {
-      text: 'Neural Reflexes Online: Strike GREEN drones instantly; INHIBIT red hazards.'
+    // Keyboard accessibility: Space or Enter intercepts closest green target
+    this.listen(window, 'keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+        if (this.paused || this.finished || !this.roundActive) return;
+        const greenDrone = this.activeTargets.find(t => !t.isHazard);
+        if (greenDrone) {
+          e.preventDefault();
+          this._hitDrone(greenDrone);
+        }
+      }
     });
   }
 
+  start(levelParams) {
+    if (this.camera) {
+      this.camera.position.set(0, 2.0, 5.8);
+      this.camera.lookAt(0, 2.0, 0);
+    }
+    super.start(levelParams);
+  }
+
+  setupRound(roundIndex, ramp, levelParams = {}) {
+    if (this.finished) return;
+
+    this._clearTargets();
+    this.targetsHitInWave = 0;
+
+    // Scaling quota per wave inside level
+    if (this.isPractice) {
+      this.waveQuota = 3;
+      this.spawnInterval = 1.2;
+    } else {
+      const baseQuota = Math.min(6, Math.max(3, 3 + Math.floor((this.level - 1) * 0.1)));
+      this.waveQuota = Math.min(7, Math.round(baseQuota + ramp * 1.5));
+      this.spawnInterval = Math.max(0.65, 1.15 - (this.level - 1) * 0.015 - ramp * 0.15);
+    }
+
+    this.spawnTimer = 0.3;
+    this.timeDilation = 1.0;
+
+    if (this.isPractice) {
+      EventBus.emit('hud:subtitle', {
+        text: '🟢 PRACTICE: Tap 3 GREEN targets. Red hazards must be ignored!'
+      });
+    } else {
+      EventBus.emit('hud:subtitle', {
+        text: `⚡ Wave ${roundIndex} / ${this.totalRounds}: Intercept ${this.waveQuota} GREEN synaptic targets!`
+      });
+    }
+  }
+
+  teardownRound(correct, reason) {
+    this._clearTargets();
+  }
+
+  _clearTargets() {
+    for (const t of this.activeTargets) {
+      if (this.inputManager) {
+        this.inputManager.unregisterTarget(t.targetId);
+      }
+      if (t.mesh && t.mesh.parent) {
+        t.mesh.parent.remove(t.mesh);
+      }
+    }
+    this.activeTargets = [];
+  }
+
   _spawnTarget() {
-    if (this.finished || this.paused) return;
+    if (this.finished || this.paused || !this.roundActive) return;
 
-    const isHazard = Math.random() < 0.28; // 28% chance of No-Go distractor
+    // Hazard probability increases with level: 15% to 35%
+    const isHazard = !this.isPractice && (Math.random() < Math.min(0.35, 0.18 + (this.level - 1) * 0.006));
 
-    // Random position across the arena arc
-    const theta = (Math.random() - 0.5) * Math.PI * 0.7;
-    const phi = (Math.random() * 0.4 + 0.1) * Math.PI;
-    const r = 4.5;
+    const theta = (Math.random() - 0.5) * Math.PI * 0.65;
+    const phi = (Math.random() * 0.35 + 0.12) * Math.PI;
+    const r = 4.4;
 
     const x = r * Math.sin(phi) * Math.sin(theta);
     const y = 2.0 + (Math.random() - 0.5) * 2.2;
-    const z = r * Math.cos(phi) * 0.3;
+    const z = r * Math.cos(phi) * 0.35;
 
     const color = isHazard ? 0xef4444 : 0x10b981;
     const geom = isHazard
-      ? new THREE.OctahedronGeometry(0.4)
+      ? new THREE.OctahedronGeometry(0.42)
       : new THREE.SphereGeometry(0.38, 16, 16);
 
     const mat = new THREE.MeshStandardMaterial({
-      color: color,
+      color,
       emissive: color,
-      emissiveIntensity: 0.8,
+      emissiveIntensity: 0.85,
       roughness: 0.2
     });
 
     const mesh = new THREE.Mesh(geom, mat);
     mesh.position.set(x, y, z);
     mesh.scale.set(0.01, 0.01, 0.01);
+    this.addObject(mesh);
 
+    const targetId = `target_${this._nextTargetId++}`;
     const targetData = {
-      isHazard,
+      targetId,
       mesh,
       mat,
-      age: 0,
-      lifetime: (isHazard ? 1.4 : 1.2) * this.timeDilation,
-      spawnedAt: performance.now()
+      isHazard,
+      life: (isHazard ? 2.8 : 2.2) * this.timeDilation
     };
     mesh.userData = targetData;
-
-    this.addObject(mesh);
     this.activeTargets.push(targetData);
 
-    // Register with unified InputManager (enlarged hit proxy)
-    const targetId = `drone_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    targetData.targetId = targetId;
     this.registerTarget(targetId, mesh, {
-      hitRadius: 1.5,
+      hitRadius: 1.45,
       onHover: (hovered) => {
-        if (hovered) mat.emissiveIntensity = 1.4;
-        else mat.emissiveIntensity = 0.8;
+        if (hovered) mat.emissiveIntensity = 1.5;
+        else mat.emissiveIntensity = 0.85;
       },
       onPress: () => {
-        if (this.paused || this.finished) return;
+        if (this.paused || this.finished || !this.roundActive) return;
         this._hitDrone(targetData);
       }
     });
 
-    // Pop-in tween
     Tween.to(mesh.scale, { x: 1, y: 1, z: 1 }, 0.15, 'easeOutBack').start();
   }
 
   _hitDrone(data) {
+    if (!this.roundActive || this.finished) return;
+    this.registerPlayerAction();
+
     if (data.isHazard) {
-      // Inhibitory failure (clicked a No-Go hazard)
-      SFXLib.playError();
-      this.recordResponse(false);
-      EventBus.emit('hud:subtitle', { text: 'Inhibition Breach! Hazard detonated.' });
+      // Inhibitory failure
+      SFXLib.playError?.();
+      data.mat.emissive.setHex(0xffffff);
+      data.mat.emissiveIntensity = 3.0;
+
+      EventBus.emit('hud:subtitle', {
+        text: '✗ Inhibitory Breach! Red hazard intercepted.'
+      });
+
       this._removeTarget(data);
+      this.setTimeout(() => {
+        this.endRound(false, 'Inhibitory failure: Red decoy was struck');
+      }, 500);
     } else {
       // Valid Go target hit!
-      SFXLib.playHit();
-      this.recordResponse(true);
-      this.targetsHit++;
+      SFXLib.playHit?.() || SFXLib.playTone?.(880, 0.08);
+      this.targetsHitInWave++;
 
       Tween.to(data.mesh.scale, { x: 1.6, y: 1.6, z: 1.6 }, 0.1, 'easeOutQuad')
         .onComplete(() => this._removeTarget(data))
         .start();
 
-      if (this.targetsHit >= this.targetQuota) {
-        SFXLib.playSuccess();
-        EventBus.emit('hud:subtitle', { text: 'Reflex quota completed. Neural latency optimal.' });
-        this.completeTrial(true, 1.0);
+      EventBus.emit('hud:subtitle', {
+        text: `Target intercepted! [${this.targetsHitInWave} / ${this.waveQuota}]`
+      });
+
+      if (this.targetsHitInWave >= this.waveQuota) {
+        SFXLib.playSuccess?.() || SFXLib.levelStart?.();
+        EventBus.emit('hud:subtitle', { text: '✨ Wave intercept quota complete! Neural reflexes optimal.' });
+        this.setTimeout(() => {
+          this.endRound(true);
+        }, 500);
       }
     }
   }
 
+  _removeTarget(data) {
+    const idx = this.activeTargets.indexOf(data);
+    if (idx >= 0) this.activeTargets.splice(idx, 1);
+    if (this.inputManager) this.inputManager.unregisterTarget(data.targetId);
+    if (data.mesh && data.mesh.parent) data.mesh.parent.remove(data.mesh);
+  }
+
   _onPointerDown(e) {
-    if (this.paused || this.finished) return;
+    if (this.paused || this.finished || !this.roundActive) return;
 
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
@@ -179,64 +273,77 @@ export class ReflexArena extends GameBase {
     }
   }
 
-  _removeTarget(data) {
-    if (data.targetId && this.inputManager) {
-      this.inputManager.unregisterTarget(data.targetId);
+  botPlayRound(willWin = true) {
+    if (!this.roundActive || this.finished) return;
+
+    if (willWin) {
+      // Find active non-hazard targets and click them in sequence
+      const nonHazards = this.activeTargets.filter(t => !t.isHazard);
+      if (nonHazards.length > 0) {
+        this._hitDrone(nonHazards[0]);
+      } else {
+        // Wait for next spawn
+        this.setTimeout(() => {
+          const fresh = this.activeTargets.filter(t => !t.isHazard);
+          if (fresh.length > 0) this._hitDrone(fresh[0]);
+        }, 400);
+      }
+    } else {
+      const hazards = this.activeTargets.filter(t => t.isHazard);
+      if (hazards.length > 0) {
+        this._hitDrone(hazards[0]);
+      } else {
+        // Miss round
+        this.setTimeout(() => {
+          this.endRound(false, 'Reflex window lapsed');
+        }, 600);
+      }
     }
-    const idx = this.activeTargets.indexOf(data);
-    if (idx >= 0) this.activeTargets.splice(idx, 1);
-    if (data.mesh.parent) data.mesh.parent.remove(data.mesh);
-    data.mat?.dispose();
   }
 
   hint(type) {
     super.hint(type);
     if (type === 'slow_time') {
       this.timeDilation = 2.0;
-      for (const t of this.activeTargets) {
-        t.lifetime *= 2.0;
-      }
-      EventBus.emit('hud:subtitle', { text: 'Synaptic dilation enabled. Target decay halved.' });
+      EventBus.emit('hud:subtitle', { text: '⏳ Chrono Dilate: Target decay speed halved.' });
     } else if (type === 'reveal' || type === 'aria_clue') {
-      // Disarm all hazards currently on screen
-      for (let i = this.activeTargets.length - 1; i >= 0; i--) {
-        const t = this.activeTargets[i];
+      // Shield against hazards: remove all active red hazards
+      for (const t of [...this.activeTargets]) {
         if (t.isHazard) {
           this._removeTarget(t);
         }
       }
-      EventBus.emit('hud:subtitle', { text: 'ARIA: Active threat hazards suppressed.' });
+      EventBus.emit('hud:subtitle', { text: '🤖 ARIA: Decoy hazards neutralized from visual field.' });
     }
   }
 
   update(dt) {
     super.update(dt);
-
-    if (this.paused || this.finished) return;
+    if (!this.roundActive || this.finished || this.paused) return;
 
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
-      this._spawnTarget();
       this.spawnTimer = this.spawnInterval;
+      if (this.activeTargets.length < 5) {
+        this._spawnTarget();
+      }
     }
 
     // Decay active targets
     for (let i = this.activeTargets.length - 1; i >= 0; i--) {
       const t = this.activeTargets[i];
-      t.age += dt;
-
-      // Subtle wobble
-      t.mesh.rotation.y += dt * 3.0;
-
-      if (t.age >= t.lifetime) {
-        // Timed out
-        if (!t.isHazard) {
-          // Missed a valid target
-          this.recordResponse(false);
-          SFXLib.playTone(220, 0.15);
-        }
+      t.life -= dt;
+      if (t.life <= 0) {
         this._removeTarget(t);
+      } else if (t.life < 0.6) {
+        t.mat.opacity = t.life / 0.6;
+        t.mat.transparent = true;
       }
     }
+  }
+
+  exit() {
+    this._clearTargets();
+    super.exit();
   }
 }
