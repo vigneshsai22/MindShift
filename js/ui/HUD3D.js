@@ -79,8 +79,12 @@ export class HUD3D {
 
   /** Build the HUD HTML and inject into the DOM */
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
     this._built = true;
+
+    // Clean up any stale duplicate hud-3d elements
+    const stale = document.querySelectorAll('#hud-3d');
+    stale.forEach(el => el.remove());
 
     const el = document.createElement('div');
     el.id = 'hud-3d';
@@ -341,7 +345,7 @@ export class HUD3D {
       'a11y-overlay', 'a11y-close', 'a11y-confirm', 'a11y-extra-time', 'a11y-reduced-motion', 'a11y-high-contrast'
     ];
     for (const id of ids) {
-      this._elements[id] = document.getElementById(`h3d-${id}`);
+      this._elements[id] = this._container ? this._container.querySelector(`#h3d-${id}`) : document.getElementById(`h3d-${id}`);
     }
   }
 

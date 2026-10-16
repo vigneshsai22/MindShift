@@ -18,8 +18,12 @@ export class ResultScreen3D {
   }
 
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
     this._built = true;
+
+    // Clean up any stale duplicate result-screen-3d elements
+    const stale = document.querySelectorAll('#result-screen-3d');
+    stale.forEach(el => el.remove());
 
     const el = document.createElement('div');
     el.id = 'result-screen-3d';

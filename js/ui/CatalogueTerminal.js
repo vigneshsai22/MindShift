@@ -137,8 +137,12 @@ export class CatalogueTerminal {
   }
 
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
     this._built = true;
+
+    // Clean up any stale duplicate catalogue elements in the DOM
+    const stale = document.querySelectorAll('#catalogue-terminal');
+    stale.forEach(el => el.remove());
 
     const el = document.createElement('div');
     el.id = 'catalogue-terminal';
@@ -168,7 +172,7 @@ export class CatalogueTerminal {
   }
 
   _updateFilters() {
-    const container = document.getElementById('cat-filters');
+    const container = this._container?.querySelector('#cat-filters');
     if (!container) return;
 
     const wingEntries = Object.entries(this._wings || DEFAULT_WINGS);
@@ -204,7 +208,7 @@ export class CatalogueTerminal {
   }
 
   _renderGrid() {
-    const grid = document.getElementById('cat-grid');
+    const grid = this._container?.querySelector('#cat-grid');
     if (!grid) return;
 
     if (!this._games || this._games.length === 0) {
@@ -279,7 +283,7 @@ export class CatalogueTerminal {
     }).join('');
 
     // Update count in footer
-    const countEl = document.getElementById('cat-count');
+    const countEl = this._container?.querySelector('#cat-count');
     if (countEl) {
       const playableTotal = this._games.filter(g => PLAYABLE_GAMES.has(g.id) || g.status === 'playable').length;
       const lockedTotal = this._games.length - playableTotal;
@@ -297,13 +301,13 @@ export class CatalogueTerminal {
 
   _bindEvents() {
     // Back to Hub
-    document.getElementById('cat-back')?.addEventListener('click', () => {
+    this._container?.querySelector('#cat-back')?.addEventListener('click', () => {
       try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (e) {}
       EventBus.emit('catalogue:back');
     });
 
     // Close button
-    document.getElementById('cat-close')?.addEventListener('click', () => {
+    this._container?.querySelector('#cat-close')?.addEventListener('click', () => {
       try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (e) {}
       EventBus.emit('catalogue:back');
     });
@@ -311,16 +315,11 @@ export class CatalogueTerminal {
     // Card clicks
     this._bindCardClicks();
 
-    // Tab key toggle
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        this.toggle();
-      }
-    });
-
-    // EventBus toggle
-    EventBus.on('catalogue:toggle', () => this.toggle());
+    // EventBus toggle (bind once)
+    if (!this._eventsBound) {
+      this._eventsBound = true;
+      EventBus.on('catalogue:toggle', () => this.toggle());
+    }
   }
 
   _bindCardClicks() {
@@ -384,18 +383,18 @@ export class CatalogueTerminal {
 
   async show(opts = {}) {
     await this.ensureData();
-    if (!this._built) {
+    if (!this._built || !this._container || !document.body.contains(this._container)) {
       this.build();
     }
 
     if (opts.title) {
       this._title = opts.title;
-      const t = document.getElementById('cat-title-text');
+      const t = this._container?.querySelector('#cat-title-text');
       if (t) t.textContent = opts.title;
     }
     if (opts.subtitle) {
       this._subtitle = opts.subtitle;
-      const s = document.getElementById('cat-subtitle-text');
+      const s = this._container?.querySelector('#cat-subtitle-text');
       if (s) s.textContent = opts.subtitle;
     }
     if (opts.filter) {

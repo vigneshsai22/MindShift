@@ -26,8 +26,12 @@ export class LevelMap {
   }
 
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
     this._built = true;
+
+    // Clean up any stale duplicate level-map elements
+    const stale = document.querySelectorAll('#level-map');
+    stale.forEach(el => el.remove());
 
     const el = document.createElement('div');
     el.id = 'level-map';

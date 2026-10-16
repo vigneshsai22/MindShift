@@ -316,7 +316,7 @@ export class RotationCore extends GameBase {
     const meshes = this.candidates.map(c => c.mesh);
     const hits = this._raycaster.intersectObjects(meshes, true);
 
-    if (hits.length > 0) {
+    if (hits.length > 0 && !this.inputManager) {
       let obj = hits[0].object;
       while (obj.parent && (!obj.userData || obj.userData.index === undefined)) {
         obj = obj.parent;

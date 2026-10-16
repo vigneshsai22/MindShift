@@ -78,8 +78,10 @@ export class TerminalHack extends GameBase {
     tLight.position.set(0, 3.2, 2.5);
     this.addObject(tLight);
 
-    const canvas = document.querySelector('#three-canvas') || window;
-    this.listen(canvas, 'pointerdown', (e) => this._onPointerDown(e));
+    if (!this.inputManager) {
+      const canvas = document.querySelector('#three-canvas') || window;
+      this.listen(canvas, 'pointerdown', (e) => this._onPointerDown(e));
+    }
   }
 
   start(levelParams) {
@@ -148,11 +150,28 @@ export class TerminalHack extends GameBase {
       swGroup.add(knob);
 
       // Indicator LED above switch
-      const ledGeom = new THREE.SphereGeometry(0.08, 16, 16);
+      const ledGeom = new THREE.SphereGeometry(0.09, 16, 16);
       const ledMat = new THREE.MeshBasicMaterial({ color: 0x334155 });
       const led = new THREE.Mesh(ledGeom, ledMat);
-      led.position.set(0, 0.45, 0);
+      led.position.set(0, 0.45, 0.05);
       swGroup.add(led);
+
+      // Neon glow ring around switch base
+      const ringGeom = new THREE.RingGeometry(0.32, 0.38, 24);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x334155,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.4
+      });
+      const ring = new THREE.Mesh(ringGeom, ringMat);
+      ring.position.z = 0.08;
+      swGroup.add(ring);
+
+      // Dynamic light source for active illumination
+      const swLight = new THREE.PointLight(0x00ff88, 0, 2.0);
+      swLight.position.set(0, 0.3, 0.4);
+      swGroup.add(swLight);
 
       const swData = {
         index: i,
@@ -161,7 +180,10 @@ export class TerminalHack extends GameBase {
         knob,
         knobMat,
         led,
-        ledMat
+        ledMat,
+        ring,
+        ringMat,
+        swLight
       };
       swGroup.userData = swData;
 
@@ -170,13 +192,15 @@ export class TerminalHack extends GameBase {
 
       // Register target with InputManager
       this.registerTarget(`switch_${i}`, swGroup, {
-        hitRadius: 1.2,
+        hitRadius: 1.25,
         key: String(i + 1),
         onHover: (hovered) => {
           if (hovered) {
-            knobMat.emissiveIntensity = swData.state === 1 ? 1.8 : 0.7;
+            knobMat.emissiveIntensity = swData.state === 1 ? 2.8 : 0.8;
+            ringMat.opacity = swData.state === 1 ? 1.0 : 0.7;
           } else {
-            knobMat.emissiveIntensity = swData.state === 1 ? 1.2 : 0.2;
+            knobMat.emissiveIntensity = swData.state === 1 ? 2.2 : 0.2;
+            ringMat.opacity = swData.state === 1 ? 0.9 : 0.4;
           }
         },
         onPress: () => {
@@ -223,14 +247,20 @@ export class TerminalHack extends GameBase {
 
     if (sw.state === 1) {
       sw.knobMat.color.setHex(0x10b981);
-      sw.knobMat.emissive.setHex(0x10b981);
-      sw.knobMat.emissiveIntensity = 1.4;
-      sw.ledMat.color.setHex(0x34d399);
+      sw.knobMat.emissive.setHex(0x00ff88);
+      sw.knobMat.emissiveIntensity = 2.4;
+      sw.ledMat.color.setHex(0x00ff88);
+      sw.ringMat.color.setHex(0x00f2fe);
+      sw.ringMat.opacity = 0.95;
+      sw.swLight.intensity = 2.8;
     } else {
       sw.knobMat.color.setHex(0x64748b);
       sw.knobMat.emissive.setHex(0x0f172a);
       sw.knobMat.emissiveIntensity = 0.2;
       sw.ledMat.color.setHex(0x334155);
+      sw.ringMat.color.setHex(0x334155);
+      sw.ringMat.opacity = 0.4;
+      sw.swLight.intensity = 0;
     }
 
     Tween.to(sw.knob.position, { z: sw.state === 1 ? 0.22 : 0.08 }, 0.15, 'easeOutBack').start();
@@ -261,7 +291,8 @@ export class TerminalHack extends GameBase {
   }
 
   _onPointerDown(e) {
-    if (this.paused || this.finished || !this.roundActive) return;
+    // If managed by unified InputManager, do not process twice
+    if (this.inputManager || this.paused || this.finished || !this.roundActive) return;
 
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };

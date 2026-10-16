@@ -76,6 +76,7 @@ export class App {
     this._clock = new THREE.Clock();
     this._rafId = null;
     this._running = false;
+    this._initialized3D = false;
     this._progress = {}; // { gameId: { stars: [0..3 per level], cleared: n } }
   }
 
@@ -147,7 +148,6 @@ export class App {
 
   async start3D() {
     if (this._running) return;
-    this._running = true;
 
     // Show 3D Canvas, hide 2D app
     const appEl = document.getElementById('app');
@@ -155,49 +155,56 @@ export class App {
       if (appEl) appEl.style.display = 'none';
       this.canvas.style.display = 'block';
 
-      // 1. Init 3D Rendering & Camera
-      this.scene3d = new Scene3D(this.canvas);
-      await this.scene3d.init();
+      if (!this._initialized3D) {
+        // 1. Init 3D Rendering & Camera
+        this.scene3d = new Scene3D(this.canvas);
+        await this.scene3d.init();
 
-      this.inputManager.setCamera(this.scene3d.camera);
-      this.inputManager.setScene(this.scene3d.scene);
+        this.inputManager.setCamera(this.scene3d.camera);
+        this.inputManager.setScene(this.scene3d.scene);
 
-      this.cameraRig = new CameraRig(this.scene3d.camera);
-      this.postFX = new PostFX(this.scene3d);
-      this.postFX.init();
+        this.cameraRig = new CameraRig(this.scene3d.camera);
+        this.postFX = new PostFX(this.scene3d);
+        this.postFX.init();
 
-      // 2. Build UI Overlays
-      this.hud = new HUD3D();
-      this.hud.build();
-      this.hud.show();
+        // 2. Build UI Overlays
+        this.hud = new HUD3D();
+        this.hud.build();
 
-      this.catalogue = new CatalogueTerminal({
-        gamesData: this.gamesData,
-        getProgress: (id) => this.getGameProgress(id)
-      });
-      this.catalogue.build();
+        this.catalogue = new CatalogueTerminal({
+          gamesData: this.gamesData,
+          getProgress: (id) => this.getGameProgress(id)
+        });
+        this.catalogue.build();
 
-      this.levelMap = new LevelMap({
-        getStars: (lv) => (this._progress[this.activeGameId]?.levels?.[lv]?.stars || 0),
-        isUnlocked: (lv) => true
-      });
-      this.levelMap.build();
+        this.levelMap = new LevelMap({
+          getStars: (lv) => (this._progress[this.activeGameId]?.levels?.[lv]?.stars || 0),
+          isUnlocked: (lv) => true
+        });
+        this.levelMap.build();
 
-      this.resultScreen = new ResultScreen3D();
-      this.resultScreen.build();
+        this.resultScreen = new ResultScreen3D();
+        this.resultScreen.build();
 
-      // 3. Audio & SFX
-      try { SFXLib.init(); } catch (e) { console.warn('[App] SFX init:', e); }
+        // 3. Audio & SFX
+        try { SFXLib.init(); } catch (e) { console.warn('[App] SFX init:', e); }
 
-      // 4. Start Render Loop
-      this._loop();
+        this._initialized3D = true;
+      }
+
+      this._running = true;
+
+      // 4. Start Render Loop if not active
+      if (!this._rafId) {
+        this._clock.start();
+        this._loop();
+      }
 
       console.log('[MindShift] 3D world initialized successfully.');
     } catch (err) {
       // Reset state so button click can retry
       console.error('[MindShift] start3D() failed — resetting for retry:', err);
       this._running = false;
-      this.scene3d = null;
       this.canvas.style.display = 'none';
       if (appEl) appEl.style.display = '';
       throw err;
@@ -607,6 +614,11 @@ export class App {
       this.activeGame = null;
     }
     this.activeGameId = null;
+
+    if (this.inputManager) {
+      this.inputManager.clearTargets();
+      this.inputManager.setDragHandler(null);
+    }
 
     this.hud?.hide();
     this.catalogue?.hide();
