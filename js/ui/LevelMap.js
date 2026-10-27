@@ -39,6 +39,10 @@ export class LevelMap {
     if (existing) existing.remove();
     this._built = true;
 
+    // Clean up any stale duplicate level-map elements
+    const stale = document.querySelectorAll('#level-map');
+    stale.forEach(el => el.remove());
+
     const el = document.createElement('div');
     el.id = 'level-map';
     el.className = 'level-map-overlay';

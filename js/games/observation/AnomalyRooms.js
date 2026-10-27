@@ -272,7 +272,7 @@ export class AnomalyRooms extends GameBase {
   }
 
   _onPointerDown(e) {
-    if (this.paused || this.finished || !this.roundActive) return;
+    if (this.inputManager || this.paused || this.finished || !this.roundActive) return;
 
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };

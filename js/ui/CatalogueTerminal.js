@@ -142,6 +142,10 @@ export class CatalogueTerminal {
     }
     this._built = true;
 
+    // Clean up any stale duplicate catalogue elements in the DOM
+    const stale = document.querySelectorAll('#catalogue-terminal');
+    stale.forEach(el => el.remove());
+
     const el = document.createElement('div');
     el.id = 'catalogue-terminal';
     el.className = 'catalogue-overlay';
@@ -315,16 +319,11 @@ export class CatalogueTerminal {
     // Card clicks
     this._bindCardClicks();
 
-    // Tab key toggle
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        this.toggle();
-      }
-    });
-
-    // EventBus toggle
-    EventBus.on('catalogue:toggle', () => this.toggle());
+    // EventBus toggle (bind once)
+    if (!this._eventsBound) {
+      this._eventsBound = true;
+      EventBus.on('catalogue:toggle', () => this.toggle());
+    }
   }
 
   _bindCardClicks() {
@@ -388,7 +387,7 @@ export class CatalogueTerminal {
 
   async show(opts = {}) {
     await this.ensureData();
-    if (!this._built) {
+    if (!this._built || !this._container || !document.body.contains(this._container)) {
       this.build();
     }
 

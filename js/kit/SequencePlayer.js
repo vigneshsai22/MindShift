@@ -28,21 +28,23 @@ export class SequencePlayer {
     return this;
   }
 
-  /** Configure playback speed */
+  /** Configure playback speed in milliseconds directly */
   setStepDelay(ms) {
     this._stepDelay = ms;
     return this;
   }
 
-  /** Configure playback speed in seconds */
+  /** Configure active flash/playback duration per step in seconds */
   setStepDuration(sec) {
-    this._stepDelay = Math.round(sec * 1000);
+    this._stepDuration = sec;
+    this._stepDelay = Math.round(((this._stepDuration || 0) + (this._interval || 0)) * 1000) || Math.round(sec * 1000);
     return this;
   }
 
-  /** Alias for interval / step duration in seconds */
+  /** Configure pause interval between steps in seconds */
   setInterval(sec) {
-    this._stepDelay = Math.round(sec * 1000);
+    this._interval = sec;
+    this._stepDelay = Math.round(((this._stepDuration || 0) + (this._interval || 0)) * 1000) || Math.round(sec * 1000);
     return this;
   }
 

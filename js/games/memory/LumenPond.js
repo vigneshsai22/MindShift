@@ -245,6 +245,7 @@ export class LumenPond extends GameBase {
         transparent: true,
         opacity: 0.85
       });
+      const petals = [];
       for (let p = 0; p < 6; p++) {
         const pAngle = (p / 6) * Math.PI * 2;
         const petal = new THREE.Mesh(petalGeom, petalMat);
@@ -252,6 +253,7 @@ export class LumenPond extends GameBase {
         petal.rotation.z = Math.cos(pAngle) * 0.55;
         petal.rotation.x = -Math.sin(pAngle) * 0.55;
         crystalAnchor.add(petal);
+        petals.push(petal);
       }
 
       // Orbital Energy Halo Ring
@@ -285,9 +287,25 @@ export class LumenPond extends GameBase {
       beam.position.y = 2.0;
       padGroup.add(beam);
 
+      // 4. Holographic Node Key/Number Badge [1]–[7] for instant visual affordance
+      const badgeTex = this._createBadgeTexture(`[${i + 1}]`, colors[i]);
+      const badgeMat = new THREE.MeshBasicMaterial({
+        map: badgeTex,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide
+      });
+      const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.28), badgeMat);
+      badge.position.set(0, 0.16, 0.55);
+      badge.rotation.x = -Math.PI / 3.2;
+      padGroup.add(badge);
+
       padGroup.userData = {
         index: i,
         flower,
+        circuitRing,
+        petals,
+        badge,
         crystalAnchor,
         auraRing,
         beam,
@@ -296,6 +314,7 @@ export class LumenPond extends GameBase {
         freq: notes[i],
         baseY: 0.02,
         currentY: 0.02,
+        bounceY: 0,
         phase: i * 0.9
       };
 
@@ -311,9 +330,13 @@ export class LumenPond extends GameBase {
           if (hovered) {
             Tween.to(padGroup.position, { y: padGroup.userData.baseY + 0.18 }, 0.2, 'easeOutBack').start();
             padGroup.userData.flower.material.emissiveIntensity = 1.3;
+            if (padGroup.userData.circuitRing) padGroup.userData.circuitRing.material.emissiveIntensity = 1.8;
+            badge.scale.set(1.15, 1.15, 1.15);
           } else {
             Tween.to(padGroup.position, { y: padGroup.userData.baseY }, 0.2, 'easeOutQuad').start();
             padGroup.userData.flower.material.emissiveIntensity = 0.45;
+            if (padGroup.userData.circuitRing) padGroup.userData.circuitRing.material.emissiveIntensity = 1.2;
+            badge.scale.set(1, 1, 1);
           }
         },
         onPress: () => {
@@ -324,18 +347,19 @@ export class LumenPond extends GameBase {
     }
 
     // ── Sequence Player helper ──────────────────────────────
-    this.sequencePlayer = new SequencePlayer({
-      stepDuration: 0.55,
-      interval: 0.25
-    });
+    this.sequencePlayer = new SequencePlayer();
 
     this.sequencePlayer.onPlayStep((padIndex) => {
-      this._activatePad(padIndex, 0.45);
+      this._activatePad(padIndex, this._currentStepDuration || 0.45);
     });
 
     this.sequencePlayer.onSequenceEnd(() => {
       this._inputActive = true;
       this._playerSeq = [];
+      // Reset countdown timer so the player receives their full allocated time for recall!
+      this.roundElapsed = 0;
+      this.roundStartTime = performance.now();
+      EventBus.emit('hud:timer', { remaining: this.roundTimeLimit, total: this.roundTimeLimit });
       EventBus.emit('hud:subtitle', { text: '🟢 YOUR TURN: Tap the glowing lily pads in sequence!' });
     });
 
@@ -383,13 +407,11 @@ export class LumenPond extends GameBase {
     // Configure playback pacing
     const stepDuration = levelParams.stepDuration || Math.max(0.35, 0.55 - (this.level - 1) * 0.007);
     const interval = levelParams.interval || Math.max(0.14, 0.25 - (this.level - 1) * 0.004);
+    this._currentStepDuration = stepDuration;
+
     if (this.sequencePlayer) {
-      if (typeof this.sequencePlayer.setStepDuration === 'function') {
-        this.sequencePlayer.setStepDuration(stepDuration);
-      }
-      if (typeof this.sequencePlayer.setInterval === 'function') {
-        this.sequencePlayer.setInterval(interval);
-      }
+      this.sequencePlayer.setStepDuration(stepDuration);
+      this.sequencePlayer.setInterval(interval);
     }
 
     if (this.isPractice) {
@@ -421,12 +443,16 @@ export class LumenPond extends GameBase {
     const pad = this.pads[index];
     if (!pad) return;
 
-    const { flower, crystalAnchor, beam, light, freq } = pad.userData;
+    const { flower, circuitRing, petals, crystalAnchor, beam, light, freq } = pad.userData;
 
     // Flare visual intensity
     flower.material.emissiveIntensity = 3.2;
     light.intensity = 4.5;
     beam.material.opacity = 0.65;
+    if (circuitRing) circuitRing.material.emissiveIntensity = 2.4;
+    if (petals) {
+      petals.forEach(p => { p.material.emissiveIntensity = 1.6; });
+    }
 
     // Synthesize harmonic audio safely
     try {
@@ -436,11 +462,11 @@ export class LumenPond extends GameBase {
       try { SFXLib.tone(freq, duration); } catch (e2) {}
     }
 
-    // Dynamic Bounce Animation
-    crystalAnchor.scale.set(1.4, 1.4, 1.4);
-    crystalAnchor.position.y = 0.65;
+    // Dynamic Bounce Animation via bounce offset
+    pad.userData.bounceY = 0.28;
+    Tween.to(pad.userData, { bounceY: 0 }, duration, 'easeOutBack').start();
+    crystalAnchor.scale.set(1.35, 1.35, 1.35);
     Tween.to(crystalAnchor.scale, { x: 1, y: 1, z: 1 }, duration, 'easeOutBack').start();
-    Tween.to(crystalAnchor.position, { y: 0.35 }, duration, 'easeOutBack').start();
 
     // Spawn water shockwave ripple
     this._spawnRipple(pad.position.x, pad.position.z, pad.userData.baseColor);
@@ -449,6 +475,10 @@ export class LumenPond extends GameBase {
       flower.material.emissiveIntensity = 0.45;
       light.intensity = 0.3;
       beam.material.opacity = 0.0;
+      if (circuitRing) circuitRing.material.emissiveIntensity = 1.2;
+      if (petals) {
+        petals.forEach(p => { p.material.emissiveIntensity = 0.3; });
+      }
     }, duration * 1000);
   }
 
@@ -587,6 +617,9 @@ export class LumenPond extends GameBase {
           text: `⚠️ Guided calibration: Node #${expected + 1} was next. Retrying round...`
         });
         this.setTimeout(() => {
+          this.roundElapsed = 0;
+          this.roundStartTime = performance.now();
+          EventBus.emit('hud:timer', { remaining: this.roundTimeLimit, total: this.roundTimeLimit });
           this.setupRound(this.currentRound, 0, this.levelParams);
         }, 1200);
       } else {
@@ -617,15 +650,21 @@ export class LumenPond extends GameBase {
   }
 
   update(dt) {
+    // During sequence presentation, freeze the countdown so player gets full recall time
+    if (this.roundActive && !this._inputActive) {
+      this.roundElapsed = 0;
+      this.roundStartTime = performance.now();
+    }
+
     super.update(dt);
     this._time += dt;
 
     // Organic floating animation of flowers & spinning aura rings
     for (const pad of this.pads) {
-      const { crystalAnchor, auraRing, phase } = pad.userData;
+      const { crystalAnchor, auraRing, phase, bounceY } = pad.userData;
       if (crystalAnchor) {
-        // Gentle vertical bobbing
-        crystalAnchor.position.y = 0.35 + Math.sin(this._time * 2.2 + phase) * 0.06;
+        // Gentle vertical bobbing combined with dynamic bounce
+        crystalAnchor.position.y = 0.35 + (bounceY || 0) + Math.sin(this._time * 2.2 + phase) * 0.06;
         crystalAnchor.rotation.y += dt * 0.6;
       }
       if (auraRing) {
@@ -676,6 +715,33 @@ export class LumenPond extends GameBase {
         }
       }, 350);
     }
+  }
+
+  _createBadgeTexture(text, colorHex = '#00f2fe') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const colorStr = typeof colorHex === 'number' ? `#${colorHex.toString(16).padStart(6, '0')}` : colorHex;
+
+    ctx.fillStyle = 'rgba(5, 19, 34, 0.88)';
+    ctx.beginPath();
+    ctx.roundRect(4, 4, 120, 56, 12);
+    ctx.fill();
+
+    ctx.strokeStyle = colorStr;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 34px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 32);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   exit() {

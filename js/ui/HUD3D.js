@@ -70,6 +70,10 @@ export class HUD3D {
     if (existing) existing.remove();
     this._built = true;
 
+    // Clean up any stale duplicate hud-3d elements
+    const stale = document.querySelectorAll('#hud-3d');
+    stale.forEach(el => el.remove());
+
     const el = document.createElement('div');
     el.id = 'hud-3d';
     el.innerHTML = `

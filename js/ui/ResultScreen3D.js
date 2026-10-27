@@ -23,6 +23,10 @@ export class ResultScreen3D {
     if (existing) existing.remove();
     this._built = true;
 
+    // Clean up any stale duplicate result-screen-3d elements
+    const stale = document.querySelectorAll('#result-screen-3d');
+    stale.forEach(el => el.remove());
+
     const el = document.createElement('div');
     el.id = 'result-screen-3d';
     el.className = 'result-overlay-3d';

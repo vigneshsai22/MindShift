@@ -316,6 +316,28 @@ export class HologramMatrix extends GameBase {
     }
   }
 
+  _createBadgeTexture(text) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.beginPath();
+    ctx.roundRect(4, 4, 120, 56, 12);
+    ctx.fill();
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 32);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
   teardownRound(correct, reason) {
     this._clearMatrix();
   }
@@ -334,6 +356,9 @@ export class HologramMatrix extends GameBase {
     for (const cand of this.candidates) {
       if (this.inputManager) {
         this.inputManager.unregisterTarget(`matrix_cand_${cand.userData.index}`);
+      }
+      if (cand.userData.pedestal && cand.userData.pedestal.parent) {
+        cand.userData.pedestal.parent.remove(cand.userData.pedestal);
       }
       if (cand.parent) cand.parent.remove(cand);
     }
@@ -379,18 +404,19 @@ export class HologramMatrix extends GameBase {
           Tween.to(cand.position, { y: data.basePos.y }, 0.15).start();
         }).start();
 
+      const failReason = data.reason ? `${data.reason} on Candidate [${data.index + 1}]` : `Transformation mismatch on Candidate [${data.index + 1}]`;
       EventBus.emit('hud:subtitle', {
-        text: `✗ Non-compliant glyph: Candidate [${data.index + 1}] breaks symmetry.`
+        text: `✗ Non-compliant glyph: Candidate [${data.index + 1}] (${data.reason || 'breaks symmetry'}).`
       });
 
       this.setTimeout(() => {
-        this.endRound(false, `Transformation mismatch on Candidate [${data.index + 1}]`);
+        this.endRound(false, failReason);
       }, 650);
     }
   }
 
   _onPointerDown(e) {
-    if (this.paused || this.finished || !this.roundActive) return;
+    if (this.inputManager || this.paused || this.finished || !this.roundActive) return;
 
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
@@ -452,6 +478,7 @@ export class HologramMatrix extends GameBase {
       for (const cand of this.candidates) {
         if (!cand.userData.isCorrect && cand.visible) {
           cand.visible = false;
+          if (cand.userData.pedestal) cand.userData.pedestal.visible = false;
           EventBus.emit('hud:subtitle', { text: `🤖 ARIA: Eliminated non-compliant transformation [${cand.userData.index + 1}].` });
           break;
         }
