@@ -24,11 +24,8 @@ export function getAnomalyRoomsLevel(level) {
   const rounds = isBoss ? Math.min(10, baseRounds + 1) : baseRounds;
   const difficulty = 600 + 30 * (level - 1);
 
-  let perRoundTime = 15;
-  if (level > 20) perRoundTime = 12;
-  else if (level > 10) perRoundTime = 13.5;
-
-  const anomalyCount = Math.min(4, 1 + Math.floor((level - 1) * 0.12));
+  const perRoundTime = Math.max(9, Math.round((18 - (level - 1) * 0.31) * 10) / 10);
+  const anomalyCount = 1;
   const parTime = Math.round(rounds * (perRoundTime * 0.8));
 
   return {

@@ -25,13 +25,10 @@ export function getReflexArenaLevel(level) {
   const rounds = isBoss ? Math.min(10, baseRounds + 1) : baseRounds;
   const difficulty = 600 + 30 * (level - 1);
 
-  let perRoundTime = 12;
-  if (level > 20) perRoundTime = 9.5;
-  else if (level > 10) perRoundTime = 10.5;
-
+  const perRoundTime = Math.max(8, Math.round((15 - (level - 1) * 0.24) * 10) / 10);
   const targetCount = Math.min(8, 3 + Math.floor((level - 1) * 0.18));
-  const hasDecoys = (level >= 4);
-  const spawnWindow = Math.max(0.65, 1.8 - (level - 1) * 0.04);
+  const hasDecoys = (level >= 3);
+  const spawnWindow = Math.max(0.65, Math.round((1.6 - (level - 1) * 0.033) * 100) / 100);
   const parTime = Math.round(rounds * (perRoundTime * 0.8));
 
   return {

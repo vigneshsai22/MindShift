@@ -1953,9 +1953,15 @@
 }
 #hud-3d button,
 #hud-3d a,
+#hud-3d input,
+#hud-3d label,
 #hud-3d .hud3d-dock-btn,
 #hud-3d .hud3d-icon-btn,
 #hud-3d .hud3d-back-btn,
+#hud-3d .hud3d-right-panel,
+#hud-3d .hud3d-right-panel *,
+#hud-3d .hud3d-settings-overlay,
+#hud-3d .hud3d-settings-overlay *,
 #hud-3d .hud3d-pause-overlay.visible,
 #hud-3d .hud3d-pause-overlay.visible * {
   pointer-events: auto !important;
@@ -1989,7 +1995,7 @@
 .hud3d-sect-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .hud3d-back-btn {
@@ -2000,7 +2006,7 @@
   font-family: var(--font-display, 'Outfit', sans-serif);
   font-weight: 600;
   font-size: 0.85rem;
-  padding: 8px 14px;
+  padding: 6px 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -2022,7 +2028,7 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 20px;
   color: #00f2fe;
   background: rgba(0, 242, 254, 0.12);
@@ -2040,6 +2046,7 @@
   gap: 4px;
   flex: 1;
   min-width: 0;
+  margin: 0 18px;
 }
 .hud3d-title-group {
   display: flex;
@@ -2326,8 +2333,48 @@
   .hud3d-game-name {
     font-size: 1.1rem;
   }
+  .hud3d-right-panel {
+    top: 68px;
+    right: 10px;
+    width: 160px;
+    padding: 10px 8px;
+    gap: 8px;
+  }
+  .rp-radial-wrap {
+    width: 72px;
+    height: 72px;
+  }
+  .rp-timer-digits {
+    font-size: 1.35rem;
+  }
+  .rp-heart {
+    font-size: 1.35rem;
+  }
+  .rp-score-val {
+    font-size: 1.4rem;
+  }
 }
 @media (max-width: 650px) {
+  .hud3d-right-panel {
+    top: 64px;
+    right: 6px;
+    width: 140px;
+    padding: 8px 6px;
+    gap: 6px;
+  }
+  .rp-radial-wrap {
+    width: 64px;
+    height: 64px;
+  }
+  .rp-timer-digits {
+    font-size: 1.15rem;
+  }
+  .rp-heart {
+    font-size: 1.15rem;
+  }
+  .rp-score-val {
+    font-size: 1.2rem;
+  }
   #hud-3d {
     padding: 10px 12px;
   }
@@ -2799,9 +2846,16 @@
 }
 
 .lm-node.lm-locked {
-  opacity: 0.35;
+  opacity: 0.42;
   cursor: not-allowed;
-  filter: grayscale(0.8);
+  filter: grayscale(0.85);
+  border-color: rgba(100, 116, 139, 0.25) !important;
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+.lm-node.lm-locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
 }
 
 /* RESULTS SCREEN 3D OVERLAY */

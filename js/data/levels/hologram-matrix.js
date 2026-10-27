@@ -26,9 +26,7 @@ export function getHologramMatrixLevel(level) {
   const rounds = isBoss ? Math.min(10, baseRounds + 1) : baseRounds;
   const difficulty = 600 + 30 * (level - 1);
 
-  let perRoundTime = 14;
-  if (level > 20) perRoundTime = 11;
-  else if (level > 10) perRoundTime = 12.5;
+  const perRoundTime = Math.max(8.5, Math.round((18 - (level - 1) * 0.33) * 10) / 10);
 
   const gridSize = (level >= 12) ? 3 : 2;
   const ruleComplexity = Math.min(4, 1 + Math.floor((level - 1) * 0.12));

@@ -182,6 +182,8 @@ export class VisualObservation extends ChallengeBase {
     this._differences = [];
     this._sceneKey = null;
     this._answered = false;
+    this._ripples = [];
+    this._onPointerDownBound = null;
   }
 
   setup() {
@@ -202,14 +204,28 @@ export class VisualObservation extends ChallengeBase {
       (t) => this.engine.hud.setTimer(t, this.data.timeLimitSec),
       () => { if (!this._answered) this._timeUp(); }
     );
-    this.setOverlayInteractive(true);
+    // Non-blocking overlay so all touch/click events reach canvas
+    this.setOverlayInteractive(false);
+    if (this.overlay) {
+      this.overlay.style.pointerEvents = 'none';
+    }
   }
 
   teardown() {
     super.teardown();
     this._stopAnim();
-    // Remove canvas click listener
-    this.canvas.onclick = null;
+    this._cleanInputListeners();
+  }
+
+  _cleanInputListeners() {
+    if (this._onPointerDownBound && this.canvas) {
+      this.canvas.removeEventListener('pointerdown', this._onPointerDownBound);
+      this.canvas.removeEventListener('touchstart', this._onPointerDownBound);
+      this._onPointerDownBound = null;
+    }
+    if (this.canvas) {
+      this.canvas.onclick = null;
+    }
   }
 
   // ── Generation ─────────────────────────────────
@@ -260,79 +276,160 @@ export class VisualObservation extends ChallengeBase {
     ctx.fillText('SCENE A', W/4, 16);
     ctx.fillText('SCENE B', W*3/4, 16);
 
-    // Draw found circles
+    // Draw found circles on BOTH Scene A and Scene B
     this._found.forEach(f => {
-      ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(f.x, f.y, 24, 0, Math.PI*2); ctx.stroke();
-      // Glow
-      ctx.strokeStyle = 'rgba(16,185,129,0.3)'; ctx.lineWidth = 8;
-      ctx.beginPath(); ctx.arc(f.x, f.y, 28, 0, Math.PI*2); ctx.stroke();
+      const halfW = W / 2 - 4;
+      const leftX = f.xLeft !== undefined ? f.xLeft : (f.x - (W / 2 + 4));
+      const rightX = f.xRight !== undefined ? f.xRight : f.x;
+      const y = f.y;
+
+      [leftX, rightX].forEach(xPos => {
+        ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(xPos, y, 24, 0, Math.PI * 2); ctx.stroke();
+        // Glow
+        ctx.strokeStyle = 'rgba(16,185,129,0.35)'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(xPos, y, 28, 0, Math.PI * 2); ctx.stroke();
+      });
     });
+
+    // Draw active tap ripples
+    if (this._ripples && this._ripples.length > 0) {
+      for (let rIdx = this._ripples.length - 1; rIdx >= 0; rIdx--) {
+        const rip = this._ripples[rIdx];
+        rip.r += 2.0;
+        rip.alpha -= 0.05;
+        if (rip.alpha <= 0) {
+          this._ripples.splice(rIdx, 1);
+        } else {
+          ctx.strokeStyle = `rgba(0, 242, 254, ${rip.alpha})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(rip.x, rip.y, rip.r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
   }
 
   _renderInstructions() {
     this.clearOverlay();
+    if (this.overlay) {
+      this.overlay.style.pointerEvents = 'none';
+    }
+
     const info = document.createElement('div');
     info.style.cssText = `
-      position:absolute;top:24px;left:50%;transform:translateX(-50%);
-      background:rgba(6,6,15,0.85);border:1px solid rgba(255,255,255,0.1);
-      border-radius:24px;padding:8px 20px;
-      font-size:0.8rem;color:#94a3b8;
-      pointer-events:none;white-space:nowrap;
+      position:absolute;top:20px;left:50%;transform:translateX(-50%);
+      background:rgba(6,6,15,0.92);border:1px solid rgba(0,242,254,0.35);
+      box-shadow:0 0 20px rgba(0,242,254,0.18);
+      border-radius:24px;padding:8px 24px;
+      font-size:0.85rem;color:#f8fafc;font-weight:500;
+      pointer-events:none;white-space:nowrap;z-index:10;
     `;
     info.id = 'visual-info';
-    info.textContent = `🔍 Find ${this.data.diffCount} difference${this.data.diffCount>1?'s':''} in Scene B — click to mark`;
+    info.innerHTML = `🔍 Spot <b>${this.data.diffCount}</b> differences — tap or click either scene`;
     this.overlay.appendChild(info);
 
     const prog = document.createElement('div');
     prog.style.cssText = `
-      position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
-      background:rgba(6,6,15,0.85);border:1px solid rgba(255,255,255,0.1);
-      border-radius:24px;padding:8px 20px;
-      font-family:'Outfit',sans-serif;font-size:0.85rem;color:#e2e8f0;
-      pointer-events:none;
+      position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+      background:rgba(6,6,15,0.92);border:1px solid rgba(16,185,129,0.4);
+      box-shadow:0 0 20px rgba(16,185,129,0.18);
+      border-radius:24px;padding:8px 24px;
+      font-family:'Outfit',sans-serif;font-size:0.9rem;color:#10b981;font-weight:600;
+      pointer-events:none;z-index:10;
     `;
     prog.id = 'visual-prog';
     prog.textContent = `Found: 0 / ${this.data.diffCount}`;
     this.overlay.appendChild(prog);
 
-    // Click handler on canvas
+    // Responsive cursor and touch styling
     this.canvas.style.cursor = 'crosshair';
-    this.canvas.onclick = (e) => this._onCanvasClick(e);
+    this.canvas.style.touchAction = 'none';
+    this.canvas.style.userSelect = 'none';
+
+    this._cleanInputListeners();
+    this._onPointerDownBound = (e) => this._onPointerInput(e);
+
+    this.canvas.addEventListener('pointerdown', this._onPointerDownBound, { passive: false });
+    this.canvas.addEventListener('touchstart', this._onPointerDownBound, { passive: false });
+    this.canvas.onclick = (e) => this._onPointerInput(e);
+
     this.startAnim(() => this._drawScene());
   }
 
-  _onCanvasClick(e) {
+  _onPointerInput(e) {
     if (this._answered || this._resolved) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-    const y = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
+    if (e.cancelable && (e.type === 'touchstart' || e.type === 'pointerdown')) {
+      e.preventDefault();
+    }
 
-    // Only right half matters (scene B)
+    const rect = this.canvas.getBoundingClientRect();
+    let clientX, clientY;
+
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else if (e.clientX !== undefined && e.clientY !== undefined) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else {
+      return;
+    }
+
+    const cssX = clientX - rect.left;
+    const cssY = clientY - rect.top;
+
     const W = this.canvas.width;
     const H = this.canvas.height;
-    if (x < W / 2) return;
+    const scaleX = rect.width / W;
+    const scaleY = rect.height / H;
 
-    // Check proximity to any difference hotspot
+    const canvasX = cssX / scaleX;
+    const canvasY = cssY / scaleY;
+
+    const halfW = W / 2 - 4;
+
+    // Generous touch threshold in screen/CSS pixels (54px for comfortable fingertip accuracy)
+    const touchThresholdCss = 54;
+
     let found = false;
     this._differences.forEach((diff, i) => {
       if (this._found.some(f => f.diffIdx === i)) return;
-      const dx = this.canvas.width;
-      const dy = this.canvas.height;
-      // Hotspot is in scene B so offset by W/2
-      const hx = W/2 + 4 + diff.nx * (W/2 - 4);
+
+      // Hotspot on Left scene and Right scene
+      const hxLeft = diff.nx * halfW;
+      const hxRight = W / 2 + 4 + diff.nx * halfW;
       const hy = diff.ny * H;
-      const dist = Math.hypot(x - hx, y - hy);
-      if (dist < 45) {
-        this._found.push({ x: hx, y: hy, diffIdx: i });
+
+      // Distances in screen/CSS pixels
+      const distLeft = Math.hypot(cssX - (hxLeft * scaleX), cssY - (hy * scaleY));
+      const distRight = Math.hypot(cssX - (hxRight * scaleX), cssY - (hy * scaleY));
+
+      if (distLeft <= touchThresholdCss || distRight <= touchThresholdCss) {
+        this._found.push({
+          xLeft: hxLeft,
+          xRight: hxRight,
+          x: hxRight,
+          y: hy,
+          diffIdx: i
+        });
         found = true;
-        this.audio?.playCorrect();
+        this.audio?.playCorrect?.() || this.audio?.playClick?.();
       }
     });
 
     if (!found) {
-      // Wrong click — small penalty
-      this.audio?.playClick();
+      this.audio?.playClick?.();
+      this._ripples.push({
+        x: canvasX,
+        y: canvasY,
+        r: 6,
+        alpha: 0.85
+      });
     }
 
     const prog = document.getElementById('visual-prog');
@@ -341,7 +438,7 @@ export class VisualObservation extends ChallengeBase {
     if (this._found.length >= this.data.diffCount) {
       this._answered = true;
       this.canvas.style.cursor = 'default';
-      this.canvas.onclick = null;
+      this._cleanInputListeners();
       setTimeout(() => this.resolve(true), 800);
     }
   }
@@ -349,17 +446,22 @@ export class VisualObservation extends ChallengeBase {
   _timeUp() {
     this._answered = true;
     this.canvas.style.cursor = 'default';
-    this.canvas.onclick = null;
-    // Show remaining hotspots
+    this._cleanInputListeners();
+    // Show remaining hotspots on both scenes
     this._differences.forEach((diff, i) => {
       if (this._found.some(f => f.diffIdx === i)) return;
       const W = this.canvas.width, H = this.canvas.height;
-      const hx = W/2 + 4 + diff.nx * (W/2 - 4);
+      const halfW = W / 2 - 4;
+      const hxLeft = diff.nx * halfW;
+      const hxRight = W / 2 + 4 + diff.nx * halfW;
       const hy = diff.ny * H;
-      this.ctx.strokeStyle = '#ef4444'; this.ctx.lineWidth = 3;
-      this.ctx.beginPath(); this.ctx.arc(hx, hy, 24, 0, Math.PI*2); this.ctx.stroke();
+
+      [hxLeft, hxRight].forEach(xPos => {
+        this.ctx.strokeStyle = '#ef4444'; this.ctx.lineWidth = 3;
+        this.ctx.beginPath(); this.ctx.arc(xPos, hy, 24, 0, Math.PI*2); this.ctx.stroke();
+      });
     });
-    this.audio?.playWrong();
+    this.audio?.playWrong?.();
     const correct = this._found.length >= this.data.diffCount;
     setTimeout(() => this.resolve(correct), 1000);
   }

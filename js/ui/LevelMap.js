@@ -25,8 +25,18 @@ export class LevelMap {
     this._visible    = false;
   }
 
+  rebuild() {
+    const existing = document.getElementById('level-map');
+    if (existing) existing.remove();
+    this._built = false;
+    this._container = null;
+    this.build();
+  }
+
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
+    const existing = document.getElementById('level-map');
+    if (existing) existing.remove();
     this._built = true;
 
     const el = document.createElement('div');
@@ -35,13 +45,12 @@ export class LevelMap {
 
     let nodesHtml = '';
     for (let level = 1; level <= 30; level++) {
-      const stars = this._getStars(level);
-      const unlocked = this._isUnlocked(level);
+      const stars = this._getStars(level, this._gameId);
+      const unlocked = this._isUnlocked(level, this._gameId);
       const starsHtml = [0, 1, 2].map(i =>
         `<span class="lm-star ${i < stars ? 'lm-star-filled' : ''}">★</span>`
       ).join('');
 
-      let tierBadge = 'Lv ' + level;
       let tierColor = '#10b981';
       if (level > 25) {
         tierColor = '#ef4444'; // Peak
@@ -54,8 +63,10 @@ export class LevelMap {
       nodesHtml += `
         <button class="lm-node ${unlocked ? '' : 'lm-locked'} ${stars > 0 ? 'lm-cleared' : ''}"
                 data-level="${level}" ${unlocked ? '' : 'disabled'}
-                title="Level ${level} · Difficulty Elo ${600 + 30 * (level - 1)}">
-          <span class="lm-node-tier" style="color:${tierColor};font-size:0.65rem;font-weight:700;">D-${600 + 30 * (level - 1)}</span>
+                title="${unlocked ? `Level ${level} · Difficulty Elo ${600 + 30 * (level - 1)}` : `Level ${level} · 🔒 Complete Level ${level - 1} to Unlock`}">
+          <span class="lm-node-tier" style="color:${unlocked ? tierColor : '#64748b'};font-size:0.65rem;font-weight:700;">
+            ${unlocked ? `D-${600 + 30 * (level - 1)}` : '🔒 LOCKED'}
+          </span>
           <span class="lm-node-num">${level}</span>
           <div class="lm-node-stars">${starsHtml}</div>
         </button>
@@ -118,13 +129,52 @@ export class LevelMap {
     const nodes = this._container.querySelectorAll('.lm-node');
     nodes.forEach(node => {
       node.addEventListener('click', () => {
-        if (node.disabled) return;
         const level = parseInt(node.dataset.level, 10);
+        const unlocked = this._isUnlocked(level, this._gameId);
+        if (!unlocked) {
+          try { SFXLib.incorrect?.() || SFXLib.playError?.(); } catch (e) {}
+          this._flashLockedNotice(level);
+          return;
+        }
         try { SFXLib.levelStart?.() || SFXLib.click?.(); } catch (e) {}
         this.hide();
         EventBus.emit('levelmap:select', { gameId: this._gameId, level });
       });
     });
+  }
+
+  _flashLockedNotice(level) {
+    let notice = document.getElementById('lm-lock-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'lm-lock-notice';
+      notice.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(220, 38, 38, 0.95);
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-family: var(--font-display, 'Outfit', sans-serif);
+        font-size: 0.95rem;
+        font-weight: 700;
+        z-index: 9999;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        border: 1px solid #f87171;
+        transition: opacity 0.3s ease;
+        text-align: center;
+        pointer-events: none;
+      `;
+      document.body.appendChild(notice);
+    }
+    notice.textContent = `🔒 Level ${level} is locked! Complete Level ${level - 1} first to unlock.`;
+    notice.style.opacity = '1';
+    clearTimeout(this._noticeTimer);
+    this._noticeTimer = setTimeout(() => {
+      if (notice) notice.style.opacity = '0';
+    }, 2800);
   }
 
   setGame(gameId, gameName) {
@@ -165,15 +215,30 @@ export class LevelMap {
     const nodes = this._container?.querySelectorAll('.lm-node');
     nodes?.forEach(node => {
       const level = parseInt(node.dataset.level, 10);
-      const stars = this._getStars(level);
-      const unlocked = this._isUnlocked(level);
+      const stars = this._getStars(level, this._gameId);
+      const unlocked = this._isUnlocked(level, this._gameId);
 
       if (stars > 0) clearedCount++;
       totalStars += stars;
 
+      let tierColor = '#10b981';
+      if (level > 25) tierColor = '#ef4444';
+      else if (level > 15) tierColor = '#a855f7';
+      else if (level > 5) tierColor = '#00f2fe';
+
       node.disabled = !unlocked;
       node.classList.toggle('lm-locked', !unlocked);
       node.classList.toggle('lm-cleared', stars > 0);
+      node.title = unlocked
+        ? `Level ${level} · Difficulty Elo ${600 + 30 * (level - 1)}`
+        : `Level ${level} · 🔒 Complete Level ${level - 1} to Unlock`;
+
+      const tierEl = node.querySelector('.lm-node-tier');
+      if (tierEl) {
+        tierEl.textContent = unlocked ? `D-${600 + 30 * (level - 1)}` : '🔒 LOCKED';
+        tierEl.style.color = unlocked ? tierColor : '#64748b';
+      }
+
       const starEls = node.querySelectorAll('.lm-star');
       starEls.forEach((s, i) => {
         s.classList.toggle('lm-star-filled', i < stars);

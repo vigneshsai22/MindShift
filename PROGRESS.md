@@ -14,12 +14,16 @@
   - [x] Keyboard input alternatives (number keys 1–9, WASD/arrows, Enter/Space).
   - [x] First-user-gesture Web Audio context resume.
   - [x] Built automated input test suite `window.__dev.testInput()` and `window.__dev.testAllGames()`.
-  - [x] Verified 100% hit rate across all 6 Tier 1 games (`lumen-pond`, `terminal-hack`, `hologram-matrix`, `rotation-core`, `reflex-arena`, `anomaly-rooms`).
+  - [x] Verified 100% hit rate across all active Tier 1 games (`lumen-pond`, `hologram-matrix`, `reflex-arena`, `anomaly-rooms`).
   - [x] **Game Catalogue & 30-Level Selection Flow**:
     - Fixed empty `#cat-grid` bug with robust fallback data and dynamic registry fetching in `CatalogueTerminal.js`.
     - Removed auto-launch of Lumen Pond on "Enter the Mind Lab"; both entry buttons now allow choosing any cognitive domain.
     - Connected all cards to `LevelMap.js` allowing players to select any difficulty level from 1 to 30.
     - Added difficulty tier guidance (Calibration 1–5, Intermediate 6–15, Advanced 16–25, Neural Peak 26–30).
+  - [x] **Right-Side Status Telemetry Dock & Settings Suite**:
+    - Built `.hud3d-right-panel` (`#h3d-status-panel`) fixed to the right side of the screen with big radial timer gauge, bold countdown numbers, 3 large hearts meter with real-time status pill, and large mission score/combo display.
+    - Replaced `♿ A11y` with full-featured `⚙️ Settings` modal (`#h3d-settings-overlay`), including Audio volume sliders & sound testing, Gameplay pacing toggles (1.5× extra time, ARIA assistance, Practice mode), Display toggles (High contrast, Reduced motion, F3 telemetry), full Controls reference guide, and Progress Data management.
+    - Auto-pause during Settings and responsive layouts across all screen resolutions.
 
 - [ ] **STAGE 2: RESPONSIVENESS AND PERFORMANCE**
   - Target: 60 FPS on medium quality, input-to-visual latency < 100 ms.

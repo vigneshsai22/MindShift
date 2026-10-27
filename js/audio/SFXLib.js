@@ -7,20 +7,23 @@ let _ctx = null;
 let _masterGain = null;
 let _sfxGain = null;
 let _musicGain = null;
+let _masterVol = 0.7;
+let _sfxVol = 0.7;
+let _musicVol = 0.5;
 
 function getCtx() {
   if (!_ctx) {
     _ctx = new (window.AudioContext || window.webkitAudioContext)();
     _masterGain = _ctx.createGain();
-    _masterGain.gain.value = 0.7;
+    _masterGain.gain.value = _masterVol;
     _masterGain.connect(_ctx.destination);
 
     _sfxGain = _ctx.createGain();
-    _sfxGain.gain.value = 0.7;
+    _sfxGain.gain.value = _sfxVol;
     _sfxGain.connect(_masterGain);
 
     _musicGain = _ctx.createGain();
-    _musicGain.gain.value = 0.5;
+    _musicGain.gain.value = _musicVol;
     _musicGain.connect(_masterGain);
   }
   return _ctx;
@@ -92,9 +95,24 @@ export const SFXLib = {
   get musicNode() { return _musicGain; },
   get masterNode() { return _masterGain; },
 
-  setMasterVolume(v) { if (_masterGain) _masterGain.gain.value = v; },
-  setSFXVolume(v)    { if (_sfxGain) _sfxGain.gain.value = v; },
-  setMusicVolume(v)  { if (_musicGain) _musicGain.gain.value = v; },
+  setMasterVolume(v) {
+    _masterVol = Math.max(0, Math.min(1, Number(v) || 0));
+    try { getCtx(); } catch (e) {}
+    if (_masterGain) _masterGain.gain.value = _masterVol;
+  },
+  setSFXVolume(v) {
+    _sfxVol = Math.max(0, Math.min(1, Number(v) || 0));
+    try { getCtx(); } catch (e) {}
+    if (_sfxGain) _sfxGain.gain.value = _sfxVol;
+  },
+  setMusicVolume(v) {
+    _musicVol = Math.max(0, Math.min(1, Number(v) || 0));
+    try { getCtx(); } catch (e) {}
+    if (_musicGain) _musicGain.gain.value = _musicVol;
+  },
+  getMasterVolume() { return _masterVol; },
+  getSFXVolume()    { return _sfxVol; },
+  getMusicVolume()  { return _musicVol; },
 
   /* ── Sound Effects ──────────────────────────────────────────── */
 
@@ -252,5 +270,28 @@ export const SFXLib = {
   },
   playTimeout() {
     this.timerExpire();
+  },
+
+  /* Volume Controls */
+  setMasterVolume(val) {
+    const ctx = getCtx();
+    const v = Math.max(0, Math.min(1, val));
+    if (_masterGain) _masterGain.gain.setValueAtTime(v, ctx.currentTime);
+  },
+  setSFXVolume(val) {
+    const ctx = getCtx();
+    const v = Math.max(0, Math.min(1, val));
+    if (_sfxGain) _sfxGain.gain.setValueAtTime(v, ctx.currentTime);
+  },
+  setMusicVolume(val) {
+    const ctx = getCtx();
+    const v = Math.max(0, Math.min(1, val));
+    if (_musicGain) _musicGain.gain.setValueAtTime(v, ctx.currentTime);
+  },
+  getMasterVolume() {
+    return _masterGain ? _masterGain.gain.value : 0.7;
+  },
+  getSFXVolume() {
+    return _sfxGain ? _sfxGain.gain.value : 0.7;
   }
 };

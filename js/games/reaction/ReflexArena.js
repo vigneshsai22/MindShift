@@ -180,12 +180,13 @@ export class ReflexArena extends GameBase {
     this.addObject(mesh);
 
     const targetId = `target_${this._nextTargetId++}`;
+    const baseLife = Math.max(1.1, 2.4 - (this.level - 1) * 0.045);
     const targetData = {
       targetId,
       mesh,
       mat,
       isHazard,
-      life: (isHazard ? 2.8 : 2.2) * this.timeDilation
+      life: (isHazard ? baseLife * 1.25 : baseLife) * this.timeDilation
     };
     mesh.userData = targetData;
     this.activeTargets.push(targetData);

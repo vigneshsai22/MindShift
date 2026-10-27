@@ -29,26 +29,12 @@ const HOW_TO_PLAY_INFO = {
     rules: 'Each level consists of 5 to 10 rounds. You have 3 lives per level. A wrong pad or timeout costs 1 life. Complete at least 60% of rounds with >= 1 life left to win.',
     hints: '⏳ Slow Time: Slows harmonic playback speed.<br>👁️ Neural Ping: Highlights the next required pad.<br>🤖 ARIA Clue: Vocal/text guidance for the current sequence.'
   },
-  'terminal-hack': {
-    title: 'Terminal Hack — Cryptanalytic Deduction',
-    goal: 'Deduce the secret cryptographic password using likeness feedback.',
-    controls: 'Click / Tap candidate passwords or use keyboard arrows + Enter.',
-    rules: 'Each round provides terminal candidates. Likeness indicates matching characters in identical positions. Complete rounds within the time limit. 3 lives per level.',
-    hints: '⏳ Slow Time: Adds extra deduction time.<br>👁️ Neural Ping: Filters out false candidate duds.<br>🤖 ARIA Clue: Reveals a correct letter position.'
-  },
   'hologram-matrix': {
     title: 'Hologram Matrix — Pattern Induction',
     goal: 'Identify the missing geometric rule and complete the holographic matrix.',
     controls: 'Click / Tap candidate solution tiles 1–4 (or keys 1–4).',
     rules: 'Analyze shape transformations across rows and columns. Choose the correct tile to fill the missing slot. 3 lives per level.',
     hints: '⏳ Slow Time: Freezes matrix rotation.<br>👁️ Neural Ping: Eliminates 2 incorrect options.<br>🤖 ARIA Clue: Explains the active row/col pattern rule.'
-  },
-  'rotation-core': {
-    title: 'Rotation Core — Spatial Reasoning',
-    goal: 'Mentally rotate the 3D core structure to match the reference orientation.',
-    controls: 'Click / Drag to inspect 3D orientation; select matching orientation.',
-    rules: 'Compare complex 3D polyhedra under multi-axis rotations. Select matching orientation before time runs out. 3 lives per level.',
-    hints: '⏳ Slow Time: Halts auto-spin drift.<br>👁️ Neural Ping: Highlights matching structural axis.<br>🤖 ARIA Clue: Indicates rotation axis and degrees.'
   },
   'reflex-arena': {
     title: 'Reflex Arena — Psychomotor Speed',
@@ -79,7 +65,9 @@ export class HUD3D {
 
   /** Build the HUD HTML and inject into the DOM */
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
+    const existing = document.getElementById('hud-3d');
+    if (existing) existing.remove();
     this._built = true;
 
     const el = document.createElement('div');
@@ -104,9 +92,9 @@ export class HUD3D {
             <span class="help-icon">❓</span>
             <span class="help-text">How to Play</span>
           </button>
-          <button class="hud3d-help-btn" id="h3d-a11y" title="Accessibility Options">
-            <span class="help-icon">♿</span>
-            <span class="help-text">A11y</span>
+          <button class="hud3d-help-btn" id="h3d-settings" title="Facility Settings (S)">
+            <span class="help-icon">⚙️</span>
+            <span class="help-text">Settings</span>
           </button>
         </div>
 
@@ -155,6 +143,65 @@ export class HUD3D {
           </div>
         </div>
       </header>
+
+      <!-- Prominent Right Side Status Panel (Score, Timer, Lives) -->
+      <aside class="hud3d-right-panel" id="h3d-status-panel">
+        <div class="rp-header">
+          <div class="rp-indicator"><span class="rp-pulse-dot"></span>LIVE TELEMETRY</div>
+          <span class="rp-sub">MISSION COCKPIT</span>
+        </div>
+
+        <!-- Big Radial Round Timer -->
+        <div class="rp-card rp-timer-card">
+          <div class="rp-card-header">
+            <span class="rp-icon">⏱️</span>
+            <span class="rp-card-title">ROUND TIMER</span>
+          </div>
+          <div class="rp-radial-wrap">
+            <svg class="rp-radial-svg" viewBox="0 0 88 88">
+              <circle class="rp-circle-bg" cx="44" cy="44" r="38"></circle>
+              <circle class="rp-circle-bar" id="h3d-panel-timer-circle" cx="44" cy="44" r="38"></circle>
+            </svg>
+            <div class="rp-radial-center">
+              <span class="rp-timer-digits" id="h3d-panel-timer">14.0</span>
+              <span class="rp-timer-unit">SEC</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Big 3 Lives Meter -->
+        <div class="rp-card rp-lives-card">
+          <div class="rp-card-header">
+            <span class="rp-icon">❤️</span>
+            <span class="rp-card-title">LIVES REMAINING</span>
+          </div>
+          <div class="rp-lives-row" id="h3d-panel-lives">
+            <span class="rp-heart active" data-heart="1">❤️</span>
+            <span class="rp-heart active" data-heart="2">❤️</span>
+            <span class="rp-heart active" data-heart="3">❤️</span>
+          </div>
+          <div class="rp-lives-status" id="h3d-panel-lives-text">3 / 3 LIVES ACTIVE</div>
+        </div>
+
+        <!-- Big Mission Score & Combo Streak -->
+        <div class="rp-card rp-score-card">
+          <div class="rp-card-header">
+            <span class="rp-icon">🏆</span>
+            <span class="rp-card-title">MISSION SCORE</span>
+          </div>
+          <div class="rp-score-val" id="h3d-panel-score">0</div>
+          <div class="rp-combo-pill" id="h3d-panel-combo">
+            <span class="rp-combo-label">COMBO</span>
+            <span class="rp-combo-val" id="h3d-panel-combo-val">0×</span>
+          </div>
+        </div>
+
+        <!-- Panel Quick Actions -->
+        <div class="rp-actions">
+          <button class="rp-btn" id="h3d-rp-pause" title="Pause Game (P / Esc)">⏸ Pause</button>
+          <button class="rp-btn" id="h3d-rp-settings" title="Settings (S)">⚙️ Settings</button>
+        </div>
+      </aside>
 
       <!-- Center Voice Subtitle Banner -->
       <div class="hud3d-subtitle-wrap">
@@ -228,7 +275,7 @@ export class HUD3D {
           <button class="hud3d-menu-btn primary" id="h3d-resume">▶ Resume Trial</button>
           <button class="hud3d-menu-btn" id="h3d-restart">🔄 Restart Level</button>
           <button class="hud3d-menu-btn" id="h3d-pause-help">❓ How to Play</button>
-          <button class="hud3d-menu-btn" id="h3d-pause-a11y">♿ Accessibility</button>
+          <button class="hud3d-menu-btn" id="h3d-pause-settings">⚙️ Facility Settings</button>
           <button class="hud3d-menu-btn danger" id="h3d-quit">✕ Exit to Hub</button>
         </div>
       </div>
@@ -277,38 +324,197 @@ export class HUD3D {
         </div>
       </div>
 
-      <!-- Accessibility Settings Modal -->
-      <div class="hud3d-a11y-overlay" id="h3d-a11y-overlay" style="display:none">
-        <div class="hud3d-a11y-card">
-          <div class="a11y-header">
-            <h2>♿ ACCESSIBILITY SETTINGS</h2>
-            <button class="help-close-btn" id="h3d-a11y-close">✕</button>
+      <!-- Facility Settings Modal (Replaces A11y with full settings suite) -->
+      <div class="hud3d-settings-overlay" id="h3d-settings-overlay" style="display:none">
+        <div class="hud3d-settings-card">
+          <div class="settings-card-header">
+            <div class="settings-header-title">
+              <span class="settings-header-icon">⚙️</span>
+              <div>
+                <h2>FACILITY SETTINGS</h2>
+                <p class="settings-header-sub">Configure acoustic synthesis, cognitive pacing, visuals & telemetry</p>
+              </div>
+            </div>
+            <button class="help-close-btn" id="h3d-settings-close" title="Close Settings (Esc)">✕</button>
           </div>
-          <div class="a11y-body">
-            <label class="a11y-toggle-row">
-              <input type="checkbox" id="h3d-a11y-extra-time">
-              <div class="a11y-toggle-info">
-                <strong>Extra Time Multiplier (1.5×)</strong>
-                <span>Extends per-round timer by 50% for relaxed cognitive processing.</span>
+
+          <!-- Navigation Tabs -->
+          <div class="settings-tabs-nav" id="h3d-settings-tabs">
+            <button class="settings-tab-btn active" data-tab="audio">🔊 Audio</button>
+            <button class="settings-tab-btn" data-tab="gameplay">⏱️ Gameplay</button>
+            <button class="settings-tab-btn" data-tab="display">🖥️ Display</button>
+            <button class="settings-tab-btn" data-tab="controls">🎮 Controls</button>
+            <button class="settings-tab-btn" data-tab="data">💾 Progress Data</button>
+          </div>
+
+          <!-- Tab 1: Audio -->
+          <div class="settings-tab-panel active" id="tab-audio">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <strong>Master Volume</strong>
+                <span>Overall acoustic loudness across all procedural synthesis channels</span>
+              </div>
+              <div class="setting-ctrl slider-ctrl">
+                <input type="range" id="h3d-set-master-vol" min="0" max="100" value="70">
+                <span class="slider-val" id="h3d-set-master-val">70%</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <strong>Sound Effects (SFX)</strong>
+                <span>Lily pad tones, matrix chimes, combo pings & button feedback</span>
+              </div>
+              <div class="setting-ctrl slider-ctrl">
+                <input type="range" id="h3d-set-sfx-vol" min="0" max="100" value="70">
+                <span class="slider-val" id="h3d-set-sfx-val">70%</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-meta">
+                <strong>Ambient Synthesizer</strong>
+                <span>Subtle background cognitive drone & harmonic frequency pad</span>
+              </div>
+              <div class="setting-ctrl slider-ctrl">
+                <input type="range" id="h3d-set-music-vol" min="0" max="100" value="50">
+                <span class="slider-val" id="h3d-set-music-val">50%</span>
+              </div>
+            </div>
+
+            <div class="setting-row actions-row" style="border:none;padding-top:4px;">
+              <button class="hud3d-menu-btn" id="h3d-set-test-audio" style="width:auto;padding:8px 16px;font-size:0.85rem;">
+                🔔 Test Sound Chime
+              </button>
+              <button class="hud3d-menu-btn" id="h3d-set-mute-btn" style="width:auto;padding:8px 16px;font-size:0.85rem;">
+                🔇 Mute All Audio
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab 2: Gameplay -->
+          <div class="settings-tab-panel" id="tab-gameplay">
+            <label class="setting-toggle-card">
+              <input type="checkbox" id="h3d-set-extra-time">
+              <div class="toggle-card-info">
+                <strong>Extra Time Multiplier (1.5× Timer)</strong>
+                <span>Expands round time limits by +50% for relaxed cognitive processing.</span>
               </div>
             </label>
-            <label class="a11y-toggle-row">
-              <input type="checkbox" id="h3d-a11y-reduced-motion">
-              <div class="a11y-toggle-info">
-                <strong>Reduced Motion</strong>
-                <span>Suppresses camera shakes, rapid spins, and intense particle bursts.</span>
+
+            <label class="setting-toggle-card">
+              <input type="checkbox" id="h3d-set-auto-aria">
+              <div class="toggle-card-info">
+                <strong>Adaptive ARIA Assistance</strong>
+                <span>Automatically displays helpful guidance subtitles when struggling on tricky rounds.</span>
               </div>
             </label>
-            <label class="a11y-toggle-row">
-              <input type="checkbox" id="h3d-a11y-high-contrast">
-              <div class="a11y-toggle-info">
+
+            <div class="setting-action-card">
+              <div>
+                <strong>Calibration Practice Trial (Level 0)</strong>
+                <span>Run infinite-shield practice round with step-by-step guidance.</span>
+              </div>
+              <button class="hud3d-menu-btn primary" id="h3d-set-launch-practice" style="width:auto;padding:8px 16px;white-space:nowrap;">
+                🟢 Start Practice (Lv 0)
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab 3: Display -->
+          <div class="settings-tab-panel" id="tab-display">
+            <label class="setting-toggle-card">
+              <input type="checkbox" id="h3d-set-high-contrast">
+              <div class="toggle-card-info">
                 <strong>High Contrast Mode</strong>
-                <span>Enhances text sharpness, neon borders, and darkens backdrop opacity.</span>
+                <span>Deep obsidian contrast, brightened neon borders, and max legible text rendering.</span>
+              </div>
+            </label>
+
+            <label class="setting-toggle-card">
+              <input type="checkbox" id="h3d-set-reduced-motion">
+              <div class="toggle-card-info">
+                <strong>Reduced Motion</strong>
+                <span>Suppresses 3D camera sweeps, shakes, and heavy particle explosions.</span>
+              </div>
+            </label>
+
+            <label class="setting-toggle-card">
+              <input type="checkbox" id="h3d-set-show-fps">
+              <div class="toggle-card-info">
+                <strong>Diagnostics Telemetry Overlay (F3)</strong>
+                <span>Real-time display of frame rate (FPS), WebGL draw calls, and Elo ratings.</span>
               </div>
             </label>
           </div>
-          <div class="a11y-footer">
-            <button class="hud3d-menu-btn primary" id="h3d-a11y-confirm">Save & Close</button>
+
+          <!-- Tab 4: Controls Guide -->
+          <div class="settings-tab-panel" id="tab-controls">
+            <div class="controls-guide-grid">
+              <div class="control-key-item">
+                <span class="control-kbd">1 – 7</span>
+                <span class="control-desc">Select Pads (Lumen Pond) or Matrix Options (1–4)</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">1</span>
+                <span class="control-desc">Hint: Chrono Dilate (Slow Time)</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">2</span>
+                <span class="control-desc">Hint: Neural Ping (Highlight Next Target)</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">3</span>
+                <span class="control-desc">Hint: ARIA Cognitive Clue</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">P / Esc</span>
+                <span class="control-desc">Pause / Resume Trial</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">H</span>
+                <span class="control-desc">Open How-to-Play Guide</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">S</span>
+                <span class="control-desc">Open / Close Facility Settings</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">Tab</span>
+                <span class="control-desc">Catalogue Terminal (All Games)</span>
+              </div>
+              <div class="control-key-item">
+                <span class="control-kbd">F3</span>
+                <span class="control-desc">Toggle Diagnostic Telemetry Overlay</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 5: Data Management -->
+          <div class="settings-tab-panel" id="tab-data">
+            <div class="data-mgmt-card">
+              <div class="data-mgmt-info">
+                <strong>Reset Progress for Active Game</strong>
+                <span>Re-locks levels 2–30 for this game and resets star ratings. Level 1 stays unlocked.</span>
+              </div>
+              <button class="hud3d-menu-btn danger" id="h3d-set-reset-game" style="width:auto;padding:8px 16px;">
+                🔄 Reset Active Game
+              </button>
+            </div>
+            <div class="data-mgmt-card">
+              <div class="data-mgmt-info">
+                <strong>Reset All Facility Progress</strong>
+                <span>Completely resets all unlocked levels and stars across all cognitive challenges.</span>
+              </div>
+              <button class="hud3d-menu-btn danger" id="h3d-set-reset-all" style="width:auto;padding:8px 16px;">
+                ⚠️ Reset All Data
+              </button>
+            </div>
+            <div id="h3d-set-data-msg" class="data-feedback-msg" style="display:none"></div>
+          </div>
+
+          <div class="settings-card-footer">
+            <button class="hud3d-menu-btn primary" id="h3d-settings-confirm">Save & Close</button>
           </div>
         </div>
       </div>
@@ -324,25 +530,42 @@ export class HUD3D {
     this._cacheElements();
     this._bindEvents();
     this._injectStyles();
-    this.initAccessibility();
+    this.initSettings();
   }
 
   _cacheElements() {
     const ids = [
-      'back', 'help', 'a11y', 'score', 'combo', 'game-name', 'level', 'round', 'domain-pill',
+      'back', 'help', 'settings', 'score', 'combo', 'game-name', 'level', 'round', 'domain-pill',
       'level-fill', 'lives', 'timer', 'timer-circle', 'timer-box', 'hints', 'pause',
       'catalogue', 'subtitle', 'sub-text', 'popup', 'pause-overlay', 'resume', 'restart',
-      'quit', 'pause-help', 'pause-a11y', 'debug', 'debug-content', 'goal', 'goal-text',
+      'quit', 'pause-help', 'pause-settings', 'debug', 'debug-content', 'goal', 'goal-text',
       'help-overlay', 'help-close', 'help-confirm', 'help-practice', 'help-title', 'help-goal',
       'help-controls', 'help-rules', 'help-hints',
       'onboard-overlay', 'onboard-title', 'onboard-goal', 'onboard-controls', 'onboard-rules',
       'onboard-skip', 'onboard-practice',
       'countdown-overlay', 'countdown-num', 'countdown-sub',
-      'a11y-overlay', 'a11y-close', 'a11y-confirm', 'a11y-extra-time', 'a11y-reduced-motion', 'a11y-high-contrast'
+      'status-panel', 'panel-timer', 'panel-timer-circle', 'panel-lives', 'panel-lives-text',
+      'panel-score', 'panel-combo', 'panel-combo-val', 'rp-pause', 'rp-settings',
+      'settings-overlay', 'settings-close', 'settings-confirm',
+      'set-master-vol', 'set-master-val', 'set-sfx-vol', 'set-sfx-val', 'set-music-vol', 'set-music-val',
+      'set-test-audio', 'set-mute-btn',
+      'set-extra-time', 'set-auto-aria', 'set-launch-practice',
+      'set-high-contrast', 'set-reduced-motion', 'set-show-fps',
+      'set-reset-game', 'set-reset-all', 'set-data-msg'
     ];
     for (const id of ids) {
-      this._elements[id] = document.getElementById(`h3d-${id}`);
+      this._elements[id] = this._container?.querySelector(`#h3d-${id}`) || document.getElementById(`h3d-${id}`);
     }
+
+    // Legacy a11y ID aliases for full backwards compatibility
+    this._elements['a11y'] = this._elements['settings'];
+    this._elements['pause-a11y'] = this._elements['pause-settings'];
+    this._elements['a11y-overlay'] = this._elements['settings-overlay'];
+    this._elements['a11y-close'] = this._elements['settings-close'];
+    this._elements['a11y-confirm'] = this._elements['settings-confirm'];
+    this._elements['a11y-extra-time'] = this._elements['set-extra-time'];
+    this._elements['a11y-reduced-motion'] = this._elements['set-reduced-motion'];
+    this._elements['a11y-high-contrast'] = this._elements['set-high-contrast'];
   }
 
   _bindEvents() {
@@ -364,28 +587,141 @@ export class HUD3D {
       EventBus.emit('game:practice', { gameId: this._currentGameId });
     });
 
-    // Accessibility modal bindings
-    this._elements['a11y']?.addEventListener('click', () => this.showA11yModal());
-    this._elements['pause-a11y']?.addEventListener('click', () => this.showA11yModal());
-    this._elements['a11y-close']?.addEventListener('click', () => this.hideA11yModal());
-    this._elements['a11y-confirm']?.addEventListener('click', () => this.hideA11yModal());
+    // Facility Settings triggers
+    this._elements['settings']?.addEventListener('click', () => {
+      SFXLib.click?.() || SFXLib.playClick?.();
+      this.showSettingsModal();
+    });
+    this._elements['pause-settings']?.addEventListener('click', () => {
+      SFXLib.click?.() || SFXLib.playClick?.();
+      this.showSettingsModal();
+    });
+    this._elements['rp-settings']?.addEventListener('click', () => {
+      SFXLib.click?.() || SFXLib.playClick?.();
+      this.showSettingsModal();
+    });
+    this._elements['rp-pause']?.addEventListener('click', () => {
+      SFXLib.click?.() || SFXLib.playClick?.();
+      this.togglePause();
+    });
+    this._elements['settings-close']?.addEventListener('click', () => this.hideSettingsModal());
+    this._elements['settings-confirm']?.addEventListener('click', () => this.hideSettingsModal());
 
-    this._elements['a11y-extra-time']?.addEventListener('change', (e) => {
+    // Settings Navigation Tabs
+    const tabBtns = this._container?.querySelectorAll('.settings-tab-btn');
+    tabBtns?.forEach(btn => {
+      btn.addEventListener('click', () => {
+        SFXLib.click?.();
+        const tabName = btn.dataset.tab;
+        tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+        const panels = this._container?.querySelectorAll('.settings-tab-panel');
+        panels?.forEach(p => p.classList.toggle('active', p.id === `tab-${tabName}`));
+      });
+    });
+
+    // Audio Settings Sliders
+    this._elements['set-master-vol']?.addEventListener('input', (e) => {
+      const val = Number(e.target.value) || 0;
+      if (this._elements['set-master-val']) this._elements['set-master-val'].textContent = `${val}%`;
+      SFXLib.setMasterVolume(val / 100);
+      this._saveSettings();
+    });
+    this._elements['set-sfx-vol']?.addEventListener('input', (e) => {
+      const val = Number(e.target.value) || 0;
+      if (this._elements['set-sfx-val']) this._elements['set-sfx-val'].textContent = `${val}%`;
+      SFXLib.setSFXVolume(val / 100);
+      this._saveSettings();
+    });
+    this._elements['set-music-vol']?.addEventListener('input', (e) => {
+      const val = Number(e.target.value) || 0;
+      if (this._elements['set-music-val']) this._elements['set-music-val'].textContent = `${val}%`;
+      SFXLib.setMusicVolume(val / 100);
+      this._saveSettings();
+    });
+
+    // Audio Test & Mute
+    this._elements['set-test-audio']?.addEventListener('click', () => {
+      SFXLib.correct?.();
+      this.flashPopup('🔔 Sound Chime Tested', '#00f2fe');
+    });
+    this._elements['set-mute-btn']?.addEventListener('click', () => {
+      const current = (typeof SFXLib.getMasterVolume === 'function') ? SFXLib.getMasterVolume() : 0.7;
+      if (current > 0) {
+        this._prevMasterVol = current;
+        SFXLib.setMasterVolume(0);
+        if (this._elements['set-master-vol']) this._elements['set-master-vol'].value = 0;
+        if (this._elements['set-master-val']) this._elements['set-master-val'].textContent = '0%';
+        this._elements['set-mute-btn'].textContent = '🔊 Unmute All';
+        this.flashPopup('Audio: MUTED', '#ef4444');
+      } else {
+        const restored = this._prevMasterVol || 0.7;
+        SFXLib.setMasterVolume(restored);
+        const pct = Math.round(restored * 100);
+        if (this._elements['set-master-vol']) this._elements['set-master-vol'].value = pct;
+        if (this._elements['set-master-val']) this._elements['set-master-val'].textContent = `${pct}%`;
+        this._elements['set-mute-btn'].textContent = '🔇 Mute All Audio';
+        this.flashPopup('Audio: RESTORED', '#00f2fe');
+      }
+      this._saveSettings();
+    });
+
+    // Gameplay Toggles & Practice Launch
+    this._elements['set-extra-time']?.addEventListener('change', (e) => {
       window.__extraTime = e.target.checked;
-      this._saveA11yPrefs();
+      this._saveSettings();
       this.flashPopup(window.__extraTime ? 'Extra Time: ACTIVE (1.5× Timer)' : 'Extra Time: Disabled', '#00f2fe');
     });
-    this._elements['a11y-reduced-motion']?.addEventListener('change', (e) => {
-      window.__reducedMotion = e.target.checked;
-      document.body.classList.toggle('reduced-motion', e.target.checked);
-      this._saveA11yPrefs();
-      this.flashPopup(window.__reducedMotion ? 'Reduced Motion: ACTIVE' : 'Reduced Motion: Disabled', '#00f2fe');
+    this._elements['set-auto-aria']?.addEventListener('change', (e) => {
+      window.__autoAria = e.target.checked;
+      this._saveSettings();
+      this.flashPopup(window.__autoAria ? 'ARIA Assist: ACTIVE' : 'ARIA Assist: Standby', '#00f2fe');
     });
-    this._elements['a11y-high-contrast']?.addEventListener('change', (e) => {
+    this._elements['set-launch-practice']?.addEventListener('click', () => {
+      this.hideSettingsModal();
+      EventBus.emit('game:practice', { gameId: this._currentGameId });
+    });
+
+    // Display Toggles
+    this._elements['set-high-contrast']?.addEventListener('change', (e) => {
       window.__highContrast = e.target.checked;
       document.body.classList.toggle('high-contrast', e.target.checked);
-      this._saveA11yPrefs();
+      this._saveSettings();
       this.flashPopup(window.__highContrast ? 'High Contrast: ACTIVE' : 'High Contrast: Disabled', '#00f2fe');
+    });
+    this._elements['set-reduced-motion']?.addEventListener('change', (e) => {
+      window.__reducedMotion = e.target.checked;
+      document.body.classList.toggle('reduced-motion', e.target.checked);
+      this._saveSettings();
+      this.flashPopup(window.__reducedMotion ? 'Reduced Motion: ACTIVE' : 'Reduced Motion: Disabled', '#00f2fe');
+    });
+    this._elements['set-show-fps']?.addEventListener('change', (e) => {
+      this._debugVisible = e.target.checked;
+      if (this._elements['debug']) {
+        this._elements['debug'].style.display = this._debugVisible ? 'block' : 'none';
+      }
+      this._saveSettings();
+    });
+
+    // Progress Data Reset Buttons
+    this._elements['set-reset-game']?.addEventListener('click', () => {
+      const ok = confirm(`Reset unlocked levels for ${this._currentGameId}? Levels 2–30 will be locked.`);
+      if (ok) {
+        EventBus.emit('progress:reset', { gameId: this._currentGameId });
+        if (this._elements['set-data-msg']) {
+          this._elements['set-data-msg'].textContent = `✓ Progress for ${this._currentGameId} reset to Level 1.`;
+          this._elements['set-data-msg'].style.display = 'block';
+        }
+      }
+    });
+    this._elements['set-reset-all']?.addEventListener('click', () => {
+      const ok = confirm('WARNING: Reset ALL progress across all games? All levels 2–30 will be locked.');
+      if (ok) {
+        EventBus.emit('progress:reset', { all: true });
+        if (this._elements['set-data-msg']) {
+          this._elements['set-data-msg'].textContent = '✓ All facility game progress reset to Level 1.';
+          this._elements['set-data-msg'].style.display = 'block';
+        }
+      }
     });
 
     // Hint buttons
@@ -419,21 +755,31 @@ export class HUD3D {
       EventBus.emit('catalogue:toggle');
     });
 
-    // Hotkeys (Esc or P for pause, H for help)
+    // Hotkeys (Esc or P for pause, H for help, S for settings)
     document.addEventListener('keydown', (e) => {
       if (!this._visible) return;
-      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+      if (e.key === 'Escape') {
         if (this._elements['help-overlay']?.style.display === 'flex') {
           this.hideHowToPlay();
-        } else if (this._elements['a11y-overlay']?.style.display === 'flex') {
-          this.hideA11yModal();
+        } else if (this._elements['settings-overlay']?.style.display === 'flex') {
+          this.hideSettingsModal();
         } else if (this._elements['onboard-overlay']?.style.display === 'flex') {
           this.hideOnboarding();
         } else {
           this.togglePause();
         }
+      } else if (e.key === 'p' || e.key === 'P') {
+        if (!e.target?.matches?.('input, textarea')) {
+          this.togglePause();
+        }
+      } else if (e.key === 's' || e.key === 'S') {
+        if (!e.target?.matches?.('input, textarea')) {
+          this.toggleSettingsModal();
+        }
       } else if (e.key === 'h' || e.key === 'H') {
-        this.toggleHowToPlay();
+        if (!e.target?.matches?.('input, textarea')) {
+          this.toggleHowToPlay();
+        }
       } else if (e.key === '1') {
         this._triggerHint('slow_time');
       } else if (e.key === '2') {
@@ -445,6 +791,9 @@ export class HUD3D {
         this._debugVisible = !this._debugVisible;
         if (this._elements['debug']) {
           this._elements['debug'].style.display = this._debugVisible ? 'block' : 'none';
+        }
+        if (this._elements['set-show-fps']) {
+          this._elements['set-show-fps'].checked = this._debugVisible;
         }
       }
     });
@@ -862,49 +1211,397 @@ export class HUD3D {
         letter-spacing: 0.1em;
       }
 
-      /* Accessibility Modal */
-      .hud3d-a11y-overlay {
+      /* ── Prominent Right Side Status Panel (Score, Timer, Lives) ── */
+      .hud3d-right-panel {
+        position: fixed;
+        top: 76px;
+        right: 22px;
+        width: 196px;
+        background: rgba(8, 16, 32, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1.5px solid rgba(0, 242, 254, 0.35);
+        border-radius: 20px;
+        box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 28px rgba(0, 242, 254, 0.16);
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 60;
+        pointer-events: auto;
+        user-select: none;
+        animation: rpSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes rpSlideIn {
+        from { opacity: 0; transform: translateX(20px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      .rp-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 2px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 8px;
+      }
+      .rp-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #00f2fe;
+        text-transform: uppercase;
+      }
+      .rp-pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #00f2fe;
+        box-shadow: 0 0 8px #00f2fe;
+        animation: rpPulse 1.2s infinite alternate;
+      }
+      @keyframes rpPulse {
+        from { transform: scale(0.9); opacity: 0.7; }
+        to   { transform: scale(1.3); opacity: 1; }
+      }
+      .rp-sub {
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        text-transform: uppercase;
+      }
+      .rp-card {
+        background: rgba(15, 23, 42, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 4px;
+        transition: border-color 0.2s;
+      }
+      .rp-card:hover {
+        border-color: rgba(0, 242, 254, 0.3);
+      }
+      .rp-card-header {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        text-transform: uppercase;
+      }
+      .rp-card-header .rp-icon {
+        font-size: 0.82rem;
+      }
+
+      /* Big Radial Timer in Right Panel */
+      .rp-radial-wrap {
+        position: relative;
+        width: 88px;
+        height: 88px;
+        margin: 2px auto 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .rp-radial-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+      .rp-circle-bg {
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-width: 6;
+        fill: none;
+      }
+      .rp-circle-bar {
+        stroke: #00f2fe;
+        stroke-width: 6;
+        stroke-linecap: round;
+        fill: none;
+        transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+        filter: drop-shadow(0 0 6px rgba(0, 242, 254, 0.45));
+      }
+      .rp-radial-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .rp-timer-digits {
+        font-family: var(--font-mono, monospace);
+        font-size: 1.65rem;
+        font-weight: 900;
+        line-height: 1;
+        color: #00f2fe;
+        text-shadow: 0 0 14px rgba(0, 242, 254, 0.45);
+      }
+      .rp-timer-unit {
+        font-size: 0.55rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #64748b;
+        margin-top: 3px;
+      }
+
+      /* Big Lives Meter in Right Panel */
+      .rp-lives-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0 2px 0;
+      }
+      .rp-heart {
+        font-size: 1.65rem;
+        filter: grayscale(1);
+        opacity: 0.28;
+        transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .rp-heart.active {
+        filter: none;
+        opacity: 1;
+        transform: scale(1.08);
+        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.65));
+        animation: rpHeartPulse 1.6s infinite alternate;
+      }
+      @keyframes rpHeartPulse {
+        from { transform: scale(1.02); }
+        to   { transform: scale(1.16); }
+      }
+      .rp-lives-status {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: #cbd5e1;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 2px 8px;
+        margin-top: 2px;
+        white-space: nowrap;
+      }
+
+      /* Big Score & Combo in Right Panel */
+      .rp-score-val {
+        font-family: var(--font-mono, monospace);
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: #ffffff;
+        text-shadow: 0 0 16px rgba(0, 242, 254, 0.45);
+        line-height: 1.1;
+        margin: 2px 0;
+      }
+      .rp-combo-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        padding: 3px 10px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #94a3b8;
+        transition: all 0.3s;
+      }
+      .rp-combo-pill.active {
+        background: rgba(245, 158, 11, 0.22);
+        border-color: #f59e0b;
+        color: #f59e0b;
+        box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+        animation: pulseCombo 0.4s ease infinite alternate;
+      }
+
+      /* Panel Quick Actions */
+      .rp-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 2px;
+      }
+      .rp-btn {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        padding: 7px 6px;
+        color: #e2e8f0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .rp-btn:hover {
+        background: rgba(0, 242, 254, 0.2);
+        border-color: #00f2fe;
+        color: #00f2fe;
+        transform: translateY(-1px);
+      }
+
+      /* ── Facility Settings Modal ── */
+      .hud3d-settings-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(4, 9, 20, 0.88);
-        backdrop-filter: blur(14px);
+        background: rgba(4, 9, 20, 0.90);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         z-index: 260;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px;
+        animation: settingsFadeIn 0.25s ease;
       }
-      .hud3d-a11y-card {
+      @keyframes settingsFadeIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+      .hud3d-settings-card {
         background: rgba(15, 23, 42, 0.98);
-        border: 2px solid #38bdf8;
-        box-shadow: 0 0 35px rgba(56, 189, 248, 0.3);
-        border-radius: 20px;
+        border: 2px solid #00f2fe;
+        box-shadow: 0 0 45px rgba(0, 242, 254, 0.35);
+        border-radius: 22px;
         width: 100%;
-        max-width: 520px;
-        padding: 28px;
+        max-width: 620px;
+        padding: 26px 30px;
         color: #f1f5f9;
         display: flex;
         flex-direction: column;
         gap: 18px;
+        max-height: 90vh;
+        overflow-y: auto;
       }
-      .a11y-header {
+      .settings-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-        padding-bottom: 12px;
+        padding-bottom: 14px;
       }
-      .a11y-header h2 {
-        font-size: 1.25rem;
-        color: #38bdf8;
+      .settings-header-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .settings-header-icon {
+        font-size: 1.8rem;
+      }
+      .settings-header-title h2 {
+        font-size: 1.35rem;
+        color: #00f2fe;
         margin: 0;
+        font-family: var(--font-display, 'Outfit', sans-serif);
+        letter-spacing: 0.05em;
       }
-      .a11y-body {
+      .settings-header-sub {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin: 2px 0 0 0;
+      }
+
+      /* Settings Navigation Tabs */
+      .settings-tabs-nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .settings-tab-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 7px 14px;
+        color: #cbd5e1;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .settings-tab-btn:hover {
+        background: rgba(0, 242, 254, 0.15);
+        color: #00f2fe;
+        border-color: rgba(0, 242, 254, 0.4);
+      }
+      .settings-tab-btn.active {
+        background: #00f2fe;
+        color: #051322;
+        border-color: #00f2fe;
+        box-shadow: 0 0 14px rgba(0, 242, 254, 0.4);
+      }
+
+      /* Tab Panels */
+      .settings-tab-panel {
+        display: none;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 220px;
+      }
+      .settings-tab-panel.active {
+        display: flex !important;
+      }
+
+      /* Setting Rows & Controls */
+      .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 12px 16px;
+      }
+      .setting-meta {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 2px;
       }
-      .a11y-toggle-row {
+      .setting-meta strong {
+        font-size: 0.92rem;
+        color: #f8fafc;
+      }
+      .setting-meta span {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        line-height: 1.3;
+      }
+      .setting-ctrl.slider-ctrl {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 170px;
+      }
+      .setting-ctrl input[type="range"] {
+        flex: 1;
+        accent-color: #00f2fe;
+        cursor: pointer;
+      }
+      .slider-val {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #00f2fe;
+        min-width: 42px;
+        text-align: right;
+      }
+
+      .setting-toggle-card {
         display: flex;
         align-items: flex-start;
         gap: 14px;
@@ -913,37 +1610,105 @@ export class HUD3D {
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
         padding: 14px 16px;
-        transition: background 0.2s;
+        transition: background 0.2s, border-color 0.2s;
       }
-      .a11y-toggle-row:hover {
-        background: rgba(56, 189, 248, 0.08);
-        border-color: rgba(56, 189, 248, 0.3);
+      .setting-toggle-card:hover {
+        background: rgba(0, 242, 254, 0.07);
+        border-color: rgba(0, 242, 254, 0.3);
       }
-      .a11y-toggle-row input[type="checkbox"] {
+      .setting-toggle-card input[type="checkbox"] {
         width: 20px;
         height: 20px;
         accent-color: #00f2fe;
         cursor: pointer;
         margin-top: 2px;
       }
-      .a11y-toggle-info {
+      .toggle-card-info {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 3px;
       }
-      .a11y-toggle-info strong {
-        font-size: 0.95rem;
+      .toggle-card-info strong {
+        font-size: 0.92rem;
         color: #f8fafc;
       }
-      .a11y-toggle-info span {
-        font-size: 0.82rem;
+      .toggle-card-info span {
+        font-size: 0.8rem;
         color: #94a3b8;
         line-height: 1.35;
       }
-      .a11y-footer {
+
+      .setting-action-card,
+      .data-mgmt-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .data-mgmt-info strong {
+        font-size: 0.92rem;
+        color: #f8fafc;
+        display: block;
+        margin-bottom: 2px;
+      }
+      .data-mgmt-info span {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        line-height: 1.35;
+      }
+      .data-feedback-msg {
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid #10b981;
+        color: #a7f3d0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 10px 14px;
+        text-align: center;
+      }
+
+      /* Controls Guide Grid */
+      .controls-guide-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 10px;
+      }
+      .control-key-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      .control-kbd {
+        font-family: var(--font-mono, monospace);
+        background: rgba(0, 242, 254, 0.12);
+        border: 1px solid rgba(0, 242, 254, 0.4);
+        color: #00f2fe;
+        font-weight: 800;
+        font-size: 0.82rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        min-width: 48px;
+        text-align: center;
+      }
+      .control-desc {
+        font-size: 0.82rem;
+        color: #cbd5e1;
+        line-height: 1.3;
+      }
+
+      .settings-card-footer {
         display: flex;
         justify-content: flex-end;
-        padding-top: 6px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       /* High Contrast & Reduced Motion Overrides */
@@ -952,6 +1717,8 @@ export class HUD3D {
       }
       body.high-contrast .hud3d-goal-bar,
       body.high-contrast .hud3d-cockpit-bar,
+      body.high-contrast .hud3d-right-panel,
+      body.high-contrast .hud3d-settings-card,
       body.high-contrast .hud3d-onboard-card,
       body.high-contrast .hud3d-help-card,
       body.high-contrast .hud3d-pause-menu,
@@ -1019,7 +1786,7 @@ export class HUD3D {
       const pct = Math.min(100, Math.max(5, (current / Math.max(1, total)) * 100));
       this._elements['level-fill'].style.width = `${pct}%`;
     }
-    // Update lives hearts
+    // Update top bar lives hearts
     if (this._elements['lives']) {
       const hearts = this._elements['lives'].querySelectorAll('.hud3d-heart');
       hearts.forEach((h, idx) => {
@@ -1036,6 +1803,35 @@ export class HUD3D {
           }
         }
       });
+    }
+
+    // Update Right Panel Lives Gauge
+    if (this._elements['panel-lives']) {
+      const pHearts = this._elements['panel-lives'].querySelectorAll('.rp-heart');
+      pHearts.forEach((h, idx) => {
+        if (isPractice) {
+          h.classList.add('active');
+          h.textContent = '🛡️';
+        } else {
+          h.textContent = '❤️';
+          if (idx < lives) {
+            h.classList.add('active');
+          } else {
+            h.classList.remove('active');
+            h.textContent = '🤍';
+          }
+        }
+      });
+    }
+    if (this._elements['panel-lives-text']) {
+      this._elements['panel-lives-text'].textContent = isPractice
+        ? '🛡️ SHIELD ACTIVE (PRACTICE)'
+        : `${lives} / ${maxLives} LIVES ACTIVE`;
+      if (!isPractice && lives <= 1) {
+        this._elements['panel-lives-text'].style.color = '#ef4444';
+      } else {
+        this._elements['panel-lives-text'].style.color = '#e2e8f0';
+      }
     }
   }
 
@@ -1068,8 +1864,12 @@ export class HUD3D {
   }
 
   setScore(score) {
+    const formatted = Math.round(score).toLocaleString();
     if (this._elements['score']) {
-      this._elements['score'].textContent = Math.round(score).toLocaleString();
+      this._elements['score'].textContent = formatted;
+    }
+    if (this._elements['panel-score']) {
+      this._elements['panel-score'].textContent = formatted;
     }
   }
 
@@ -1078,12 +1878,23 @@ export class HUD3D {
   }
 
   setCombo(combo) {
+    const comboStr = combo > 0 ? `${combo}×` : '0×';
     if (this._elements['combo']) {
-      this._elements['combo'].textContent = combo > 0 ? `${combo}×` : '0×';
+      this._elements['combo'].textContent = comboStr;
       if (combo > 1) {
         this._elements['combo'].classList.add('hud3d-combo-flame');
       } else {
         this._elements['combo'].classList.remove('hud3d-combo-flame');
+      }
+    }
+    if (this._elements['panel-combo-val']) {
+      this._elements['panel-combo-val'].textContent = comboStr;
+    }
+    if (this._elements['panel-combo']) {
+      if (combo > 1) {
+        this._elements['panel-combo'].classList.add('active');
+      } else {
+        this._elements['panel-combo'].classList.remove('active');
       }
     }
   }
@@ -1120,18 +1931,15 @@ export class HUD3D {
 
   setTimer(remaining, fraction) {
     const s = Math.max(0, remaining);
-    if (this._elements['timer']) {
-      this._elements['timer'].textContent = s >= 60
-        ? `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
-        : s.toFixed(1);
+    const timeFormatted = s >= 60
+      ? `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+      : s.toFixed(1);
 
-      if (fraction < 0.25) {
-        this._elements['timer'].style.color = '#ff4d4d';
-      } else if (fraction < 0.5) {
-        this._elements['timer'].style.color = '#f59e0b';
-      } else {
-        this._elements['timer'].style.color = '#00f2fe';
-      }
+    const timerColor = fraction < 0.25 ? '#ff4d4d' : (fraction < 0.5 ? '#f59e0b' : '#00f2fe');
+
+    if (this._elements['timer']) {
+      this._elements['timer'].textContent = timeFormatted;
+      this._elements['timer'].style.color = timerColor;
     }
 
     if (this._elements['timer-circle']) {
@@ -1139,8 +1947,21 @@ export class HUD3D {
       const offset = circ * (1 - fraction);
       this._elements['timer-circle'].style.strokeDasharray = `${circ}`;
       this._elements['timer-circle'].style.strokeDashoffset = `${offset}`;
-      this._elements['timer-circle'].style.stroke = fraction < 0.25
-        ? '#ff4d4d' : (fraction < 0.5 ? '#f59e0b' : '#00f2fe');
+      this._elements['timer-circle'].style.stroke = timerColor;
+    }
+
+    // Update Right Panel Radial Gauge & Digits
+    if (this._elements['panel-timer']) {
+      this._elements['panel-timer'].textContent = timeFormatted;
+      this._elements['panel-timer'].style.color = timerColor;
+    }
+
+    if (this._elements['panel-timer-circle']) {
+      const circ = 238.76;
+      const offset = circ * (1 - fraction);
+      this._elements['panel-timer-circle'].style.strokeDasharray = `${circ}`;
+      this._elements['panel-timer-circle'].style.strokeDashoffset = `${offset}`;
+      this._elements['panel-timer-circle'].style.stroke = timerColor;
     }
   }
 
@@ -1218,49 +2039,122 @@ export class HUD3D {
     `;
   }
 
-  /* ── 3-Step Onboarding & Accessibility Methods ──────────────── */
+  /* ── Facility Settings & Accessibility Methods ──────────────── */
 
-  initAccessibility() {
+  initSettings() {
     try {
-      const saved = localStorage.getItem('mindshift_accessibility');
+      const saved = localStorage.getItem('mindshift_settings') || localStorage.getItem('mindshift_accessibility');
       if (saved) {
         const prefs = JSON.parse(saved);
         window.__extraTime = !!prefs.extraTime;
+        window.__autoAria = prefs.autoAria !== false;
         window.__reducedMotion = !!prefs.reducedMotion;
         window.__highContrast = !!prefs.highContrast;
+
+        if (prefs.masterVolume !== undefined) {
+          SFXLib.setMasterVolume(prefs.masterVolume);
+        }
+        if (prefs.sfxVolume !== undefined) {
+          SFXLib.setSFXVolume(prefs.sfxVolume);
+        }
+        if (prefs.musicVolume !== undefined) {
+          SFXLib.setMusicVolume(prefs.musicVolume);
+        }
+
         document.body.classList.toggle('reduced-motion', window.__reducedMotion);
         document.body.classList.toggle('high-contrast', window.__highContrast);
+
+        if (prefs.showFps) {
+          this._debugVisible = true;
+          if (this._elements['debug']) this._elements['debug'].style.display = 'block';
+        }
       }
     } catch (e) {
-      console.warn('[HUD3D] initAccessibility error:', e);
+      console.warn('[HUD3D] initSettings error:', e);
     }
   }
 
-  _saveA11yPrefs() {
+  _saveSettings() {
     try {
       const prefs = {
         extraTime: !!window.__extraTime,
+        autoAria: window.__autoAria !== false,
         reducedMotion: !!window.__reducedMotion,
-        highContrast: !!window.__highContrast
+        highContrast: !!window.__highContrast,
+        showFps: !!this._debugVisible,
+        masterVolume: (typeof SFXLib.getMasterVolume === 'function') ? SFXLib.getMasterVolume() : 0.7,
+        sfxVolume: (typeof SFXLib.getSFXVolume === 'function') ? SFXLib.getSFXVolume() : 0.7,
+        musicVolume: (typeof SFXLib.getMusicVolume === 'function') ? SFXLib.getMusicVolume() : 0.5
       };
+      localStorage.setItem('mindshift_settings', JSON.stringify(prefs));
       localStorage.setItem('mindshift_accessibility', JSON.stringify(prefs));
     } catch (e) {}
   }
 
-  showA11yModal() {
-    const overlay = this._elements['a11y-overlay'];
+  showSettingsModal(tabName = 'audio') {
+    const overlay = this._elements['settings-overlay'];
     if (!overlay) return;
-    if (this._elements['a11y-extra-time']) this._elements['a11y-extra-time'].checked = !!window.__extraTime;
-    if (this._elements['a11y-reduced-motion']) this._elements['a11y-reduced-motion'].checked = !!window.__reducedMotion;
-    if (this._elements['a11y-high-contrast']) this._elements['a11y-high-contrast'].checked = !!window.__highContrast;
+
+    // Sync input states from active settings
+    const masterVol = (typeof SFXLib.getMasterVolume === 'function') ? Math.round(SFXLib.getMasterVolume() * 100) : 70;
+    const sfxVol = (typeof SFXLib.getSFXVolume === 'function') ? Math.round(SFXLib.getSFXVolume() * 100) : 70;
+    const musicVol = (typeof SFXLib.getMusicVolume === 'function') ? Math.round(SFXLib.getMusicVolume() * 100) : 50;
+
+    if (this._elements['set-master-vol']) this._elements['set-master-vol'].value = masterVol;
+    if (this._elements['set-master-val']) this._elements['set-master-val'].textContent = `${masterVol}%`;
+    if (this._elements['set-sfx-vol']) this._elements['set-sfx-vol'].value = sfxVol;
+    if (this._elements['set-sfx-val']) this._elements['set-sfx-val'].textContent = `${sfxVol}%`;
+    if (this._elements['set-music-vol']) this._elements['set-music-vol'].value = musicVol;
+    if (this._elements['set-music-val']) this._elements['set-music-val'].textContent = `${musicVol}%`;
+
+    if (this._elements['set-extra-time']) this._elements['set-extra-time'].checked = !!window.__extraTime;
+    if (this._elements['set-auto-aria']) this._elements['set-auto-aria'].checked = window.__autoAria !== false;
+    if (this._elements['set-high-contrast']) this._elements['set-high-contrast'].checked = !!window.__highContrast;
+    if (this._elements['set-reduced-motion']) this._elements['set-reduced-motion'].checked = !!window.__reducedMotion;
+    if (this._elements['set-show-fps']) this._elements['set-show-fps'].checked = !!this._debugVisible;
+
+    // Reset data msg
+    if (this._elements['set-data-msg']) this._elements['set-data-msg'].style.display = 'none';
+
+    // Switch tab if specified
+    if (tabName) {
+      const tabBtns = this._container?.querySelectorAll('.settings-tab-btn');
+      tabBtns?.forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
+      const panels = this._container?.querySelectorAll('.settings-tab-panel');
+      panels?.forEach(p => p.classList.toggle('active', p.id === `tab-${tabName}`));
+    }
+
+    if (!this._paused) {
+      this._settingsPausedGame = true;
+      this.togglePause();
+    }
+
     overlay.style.display = 'flex';
   }
 
-  hideA11yModal() {
-    if (this._elements['a11y-overlay']) {
-      this._elements['a11y-overlay'].style.display = 'none';
+  hideSettingsModal() {
+    if (this._elements['settings-overlay']) {
+      this._elements['settings-overlay'].style.display = 'none';
+    }
+    if (this._settingsPausedGame) {
+      this._settingsPausedGame = false;
+      if (this._paused) this.togglePause();
     }
   }
+
+  toggleSettingsModal() {
+    if (this._elements['settings-overlay']?.style.display === 'flex') {
+      this.hideSettingsModal();
+    } else {
+      this.showSettingsModal();
+    }
+  }
+
+  // Aliases for backwards compatibility
+  initAccessibility() { this.initSettings(); }
+  _saveA11yPrefs() { this._saveSettings(); }
+  showA11yModal() { this.showSettingsModal('display'); }
+  hideA11yModal() { this.hideSettingsModal(); }
 
   showOnboarding(gameId, { onPractice, onSkip } = {}) {
     this._currentGameId = gameId || this._currentGameId;

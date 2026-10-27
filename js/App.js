@@ -26,26 +26,20 @@ import { getLevelConfig }      from './data/levels/index.js';
 
 // Tier 1 Games
 import { LumenPond }          from './games/memory/LumenPond.js';
-import { TerminalHack }       from './games/logic/TerminalHack.js';
 import { AnomalyRooms }       from './games/observation/AnomalyRooms.js';
 import { HologramMatrix }     from './games/pattern/HologramMatrix.js';
 import { ReflexArena }        from './games/reaction/ReflexArena.js';
-import { RotationCore }       from './games/spatial/RotationCore.js';
 
 const GAME_CLASSES = {
   'lumen-pond':      LumenPond,
-  'terminal-hack':   TerminalHack,
   'anomaly-rooms':   AnomalyRooms,
   'hologram-matrix': HologramMatrix,
-  'reflex-arena':    ReflexArena,
-  'rotation-core':   RotationCore
+  'reflex-arena':    ReflexArena
 };
 
 export const ASSESSMENT_ORDER = [
   'lumen-pond',      // Memory Wing (Lumen Pond)
-  'terminal-hack',   // Logic Wing (Terminal Hack)
   'hologram-matrix', // Pattern Wing (Hologram Matrix)
-  'rotation-core',   // Spatial Wing (Rotation Core)
   'reflex-arena',    // Reaction Wing (Reflex Arena)
   'anomaly-rooms'    // Observation Wing (Anomaly Rooms)
 ];
@@ -89,16 +83,7 @@ export class App {
     }
 
     // Load progress from Storage
-    try {
-      if (Storage && typeof Storage.get === 'function') {
-        this._progress = Storage.get('mindshift_progress', {}) || {};
-      } else {
-        const raw = localStorage.getItem('mindshift_progress');
-        this._progress = raw ? JSON.parse(raw) : {};
-      }
-    } catch (e) {
-      this._progress = {};
-    }
+    this._loadProgress();
 
     // Load games.json registry
     try {
@@ -151,10 +136,22 @@ export class App {
 
     // Show 3D Canvas, hide 2D app
     const appEl = document.getElementById('app');
-    try {
-      if (appEl) appEl.style.display = 'none';
-      this.canvas.style.display = 'block';
+    if (appEl) appEl.style.display = 'none';
+    this.canvas.style.display = 'block';
 
+    // Reload progress for currently active player profile
+    this._loadProgress();
+
+    // If 3D subsystem is already built, simply resume loop & HUD
+    if (this.scene3d) {
+      this._clock.start();
+      this._loop();
+      this.hud?.show();
+      console.log('[MindShift] 3D world resumed.');
+      return;
+    }
+
+    try {
       // 1. Init 3D Rendering & Camera
       this.scene3d = new Scene3D(this.canvas);
       await this.scene3d.init();
@@ -178,8 +175,8 @@ export class App {
       this.catalogue.build();
 
       this.levelMap = new LevelMap({
-        getStars: (lv) => (this._progress[this.activeGameId]?.levels?.[lv]?.stars || 0),
-        isUnlocked: (lv) => true
+        getStars: (lv, gId) => (this._progress[gId || this.activeGameId]?.levels?.[lv]?.stars || 0),
+        isUnlocked: (lv, gId) => this.isLevelUnlocked(gId || this.activeGameId, lv)
       });
       this.levelMap.build();
 
@@ -267,6 +264,17 @@ export class App {
 
     // Retrieve metadata and rich level configuration
     const meta = this.gamesData?.games?.find(g => g.id === gameId) || { name: gameId, skill: 'memory' };
+
+    // Strict lock enforcement: level > 1 requires previous level completed
+    if (level > 1 && !this.isLevelUnlocked(gameId, level)) {
+      console.warn(`[App] Level ${level} of ${gameId} is locked.`);
+      this.hud?.flashPopup(`LEVEL ${level} IS LOCKED — COMPLETE LEVEL ${level - 1} FIRST!`, '#ef4444');
+      try { SFXLib.incorrect?.() || SFXLib.playError?.(); } catch (e) {}
+      this.levelMap?.setGame(gameId, meta.name || gameId);
+      this.levelMap?.show();
+      return;
+    }
+
     const levelConfig = getLevelConfig(gameId, level);
 
     // Instantiate & build
@@ -378,14 +386,19 @@ export class App {
           this._progress[this.activeGameId] = { levels: {}, totalStars: 0, cleared: 0 };
         }
         const gProg = this._progress[this.activeGameId];
-        if (!gProg.levels[this.currentLevel] || stars > (gProg.levels[this.currentLevel].stars || 0)) {
-          gProg.levels[this.currentLevel] = { stars, score: this.score };
+        if (!gProg.levels) gProg.levels = {};
+
+        // Only mark cleared & unlock next level if the trial was passed (stars > 0)
+        if (stars > 0) {
+          const prevLevelData = gProg.levels[this.currentLevel] || {};
+          gProg.levels[this.currentLevel] = {
+            stars: Math.max(stars, prevLevelData.stars || 0),
+            score: Math.max(this.score, prevLevelData.score || 0),
+            cleared: true
+          };
         }
-        if (typeof Storage !== 'undefined' && Storage && typeof Storage.set === 'function') {
-          Storage.set('mindshift_progress', this._progress);
-        } else {
-          localStorage.setItem('mindshift_progress', JSON.stringify(this._progress));
-        }
+
+        this._saveProgress();
       } catch (storageErr) {
         console.warn('[Storage] save error:', storageErr);
       }
@@ -451,6 +464,42 @@ export class App {
         });
       } catch (e2) {}
     }
+  }
+
+  _getProgressKey() {
+    const profileId = window.__mindshift__?.currentPlayer?.id;
+    return profileId ? `mindshift_progress_${profileId}` : 'mindshift_progress';
+  }
+
+  _loadProgress() {
+    try {
+      const key = this._getProgressKey();
+      const raw = localStorage.getItem(key);
+      this._progress = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      this._progress = {};
+    }
+  }
+
+  _saveProgress() {
+    try {
+      const key = this._getProgressKey();
+      localStorage.setItem(key, JSON.stringify(this._progress));
+      if (typeof Storage !== 'undefined' && Storage && typeof Storage.set === 'function') {
+        Storage.set(key, this._progress);
+      }
+    } catch (storageErr) {
+      console.warn('[Storage] save error:', storageErr);
+    }
+  }
+
+  isLevelUnlocked(gameId, level) {
+    if (!level || level <= 1) return true; // Level 1 is always unlocked
+    const p = this._progress?.[gameId];
+    if (!p || !p.levels) return false;
+    // Level N is unlocked if level N - 1 was completed (stars > 0 or cleared)
+    const prev = p.levels[level - 1];
+    return !!(prev && ((prev.stars && prev.stars > 0) || prev.cleared));
   }
 
   getGameProgress(gameId) {
@@ -586,6 +635,23 @@ export class App {
       this.loadGame(gameId || this.activeGameId, 0);
     });
 
+    // Reset progress for a game or all games
+    EventBus.on('progress:reset', ({ gameId, all }) => {
+      if (all) {
+        this._progress = {};
+        this._saveProgress();
+        this.levelMap?.rebuild?.();
+        EventBus.emit('hud:popup', { text: 'All game unlocks reset to Level 1', color: '#ef4444' });
+      } else if (gameId) {
+        if (this._progress[gameId]) {
+          this._progress[gameId] = { levels: {} };
+          this._saveProgress();
+          this.levelMap?.rebuild?.();
+          EventBus.emit('hud:popup', { text: `Level progress reset for ${gameId}`, color: '#ef4444' });
+        }
+      }
+    });
+
     // Catalogue back
     EventBus.on('catalogue:back', () => {
       this.catalogue?.hide();
@@ -620,6 +686,16 @@ export class App {
     const appEl = document.getElementById('app');
     if (appEl) {
       appEl.style.display = '';
+    }
+
+    // Clean up active/exiting classes on all screens to prevent any animation locks
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active', 'exiting');
+    });
+    const mainMenuEl = document.getElementById('main-menu');
+    if (mainMenuEl) {
+      mainMenuEl.classList.remove('exiting');
+      mainMenuEl.classList.add('active');
     }
 
     if (window.location.search) {
@@ -711,7 +787,7 @@ export class App {
         return this.inputManager.testInput();
       },
       testAllGames: async () => {
-        const gameIds = ['lumen-pond', 'terminal-hack', 'hologram-matrix', 'rotation-core', 'reflex-arena', 'anomaly-rooms'];
+        const gameIds = ['lumen-pond', 'hologram-matrix', 'reflex-arena', 'anomaly-rooms'];
         const allResults = {};
         for (const gId of gameIds) {
           console.log(`\n=================== Testing Game: ${gId} ===================`);
@@ -730,7 +806,7 @@ export class App {
         return allResults;
       },
       runDurationBenchmark: async (options = {}) => {
-        const gameIds = options.games || ['lumen-pond', 'terminal-hack', 'hologram-matrix', 'rotation-core', 'reflex-arena', 'anomaly-rooms'];
+        const gameIds = options.games || ['lumen-pond', 'hologram-matrix', 'reflex-arena', 'anomaly-rooms'];
         const testLevels = options.levels || [1, 5, 10, 15, 20, 25, 30];
         const results = [];
         console.log(`\n=================== STARTING REALISTIC DURATION BENCHMARK ===================`);

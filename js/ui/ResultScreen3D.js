@@ -18,7 +18,9 @@ export class ResultScreen3D {
   }
 
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
+    const existing = document.getElementById('result-screen-3d');
+    if (existing) existing.remove();
     this._built = true;
 
     const el = document.createElement('div');
@@ -146,10 +148,15 @@ export class ResultScreen3D {
     if (titleEl) titleEl.textContent = `${gameName} — Level ${level}`;
     const nextBtn = this._container.querySelector('#res-btn-next');
     if (nextBtn) {
-      if (level < 30) {
-        nextBtn.textContent = `Next Level (${level + 1} / 30) ▶`;
+      if (!passed || stars === 0) {
+        nextBtn.style.display = 'none';
       } else {
-        nextBtn.textContent = 'All 30 Levels Cleared! 🎉';
+        nextBtn.style.display = '';
+        if (level < 30) {
+          nextBtn.textContent = `Next Level (${level + 1} / 30) ▶`;
+        } else {
+          nextBtn.textContent = 'All 30 Levels Cleared! 🎉';
+        }
       }
     }
     if (badgeEl) {

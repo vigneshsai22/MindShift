@@ -122,30 +122,6 @@
       "status": "card-only"
     },
     {
-      "id": "terminal-hack",
-      "name": "Terminal Hack",
-      "skill": "logic",
-      "tags": [
-        "number-sequences",
-        "deduction",
-        "arithmetic"
-      ],
-      "type": "3D",
-      "tier": 1,
-      "levels": 30,
-      "description": "Hack holographic terminals by solving number sequences and logic puzzles.",
-      "wing": "logic",
-      "index": 6,
-      "icon": "💻",
-      "palette": {
-        "primary": "#00e676",
-        "secondary": "#1b5e20",
-        "accent": "#69f0ae"
-      },
-      "built": true,
-      "status": "playable"
-    },
-    {
       "id": "gate-circuit",
       "name": "Gate Circuit",
       "skill": "logic",
@@ -601,30 +577,6 @@
       },
       "built": false,
       "status": "card-only"
-    },
-    {
-      "id": "rotation-core",
-      "name": "Rotation Core",
-      "skill": "spatial",
-      "tags": [
-        "mental-rotation",
-        "spatial-perception",
-        "3d-visualization"
-      ],
-      "type": "3D",
-      "tier": 1,
-      "levels": 30,
-      "description": "Rotate a 3D object to match a wall silhouette — mirrored decoys at higher levels.",
-      "wing": "spatial",
-      "index": 26,
-      "icon": "🔄",
-      "palette": {
-        "primary": "#00acc1",
-        "secondary": "#006064",
-        "accent": "#4dd0e1"
-      },
-      "built": true,
-      "status": "playable"
     },
     {
       "id": "net-folder",

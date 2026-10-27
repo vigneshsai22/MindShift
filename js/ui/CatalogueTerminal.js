@@ -8,14 +8,12 @@
 import { EventBus } from '../core/EventBus.js';
 import { SFXLib }   from '../audio/SFXLib.js';
 
-// The 6 active, fully implemented 3D cognitive games
+// The active, fully implemented 3D cognitive games
 export const PLAYABLE_GAMES = new Set([
   'lumen-pond',      // Memory Vault
-  'terminal-hack',   // Logic Terminal
   'anomaly-rooms',   // Observation Deck
   'hologram-matrix', // Pattern Gallery
-  'reflex-arena',    // Reaction Arena
-  'rotation-core'    // Spatial Workshop
+  'reflex-arena'     // Reaction Arena
 ]);
 
 const DEFAULT_WINGS = {
@@ -97,19 +95,17 @@ export class CatalogueTerminal {
     const wings = ['memory', 'logic', 'observation', 'pattern', 'reaction', 'spatial'];
     const wingCoreNames = {
       memory: 'lumen-pond',
-      logic: 'terminal-hack',
       observation: 'anomaly-rooms',
       pattern: 'hologram-matrix',
-      reaction: 'reflex-arena',
-      spatial: 'rotation-core'
+      reaction: 'reflex-arena'
     };
     const wingNames = {
       memory: ['Lumen Pond', 'Witness Room', 'Echo Shelves', 'Tone Tower', 'Twin Crystals'],
-      logic: ['Terminal Hack', 'Gate Circuit', 'Evidence Board', 'Balance Lab', 'Number Forge'],
+      logic: ['Gate Circuit', 'Evidence Board', 'Balance Lab', 'Number Forge', 'Logic Sequencer'],
       observation: ['Anomaly Rooms', 'Surveillance Wall', 'Hidden Archive', 'Swarm Count', 'Flicker Lab'],
       pattern: ['Hologram Matrix', 'Pattern Wall', 'Cipher Dials', 'Factory Sorter', 'Tile Cascade'],
       reaction: ['Reflex Arena', 'Laser Corridor', 'Lane Shift', 'Signal Console', 'Reactor Control'],
-      spatial: ['Rotation Core', 'Net Folder', 'Mind Map Maze', 'Frost Route', 'Drop Lab']
+      spatial: ['Net Folder', 'Mind Map Maze', 'Frost Route', 'Drop Lab', 'Spatial Aligner']
     };
     const games = [];
     wings.forEach(w => {
@@ -137,7 +133,13 @@ export class CatalogueTerminal {
   }
 
   build() {
-    if (this._built) return;
+    if (this._built && this._container && document.body.contains(this._container)) return;
+    
+    // Clean up any stale catalogue-terminal elements in DOM
+    const existing = document.getElementById('catalogue-terminal');
+    if (existing) {
+      existing.remove();
+    }
     this._built = true;
 
     const el = document.createElement('div');
@@ -168,7 +170,7 @@ export class CatalogueTerminal {
   }
 
   _updateFilters() {
-    const container = document.getElementById('cat-filters');
+    const container = this._container?.querySelector('#cat-filters') || document.getElementById('cat-filters');
     if (!container) return;
 
     const wingEntries = Object.entries(this._wings || DEFAULT_WINGS);
@@ -204,7 +206,7 @@ export class CatalogueTerminal {
   }
 
   _renderGrid() {
-    const grid = document.getElementById('cat-grid');
+    const grid = this._container?.querySelector('#cat-grid') || document.getElementById('cat-grid');
     if (!grid) return;
 
     if (!this._games || this._games.length === 0) {
@@ -279,7 +281,7 @@ export class CatalogueTerminal {
     }).join('');
 
     // Update count in footer
-    const countEl = document.getElementById('cat-count');
+    const countEl = this._container?.querySelector('#cat-count') || document.getElementById('cat-count');
     if (countEl) {
       const playableTotal = this._games.filter(g => PLAYABLE_GAMES.has(g.id) || g.status === 'playable').length;
       const lockedTotal = this._games.length - playableTotal;
@@ -297,13 +299,15 @@ export class CatalogueTerminal {
 
   _bindEvents() {
     // Back to Hub
-    document.getElementById('cat-back')?.addEventListener('click', () => {
+    const backBtn = this._container?.querySelector('#cat-back') || document.getElementById('cat-back');
+    backBtn?.addEventListener('click', () => {
       try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (e) {}
       EventBus.emit('catalogue:back');
     });
 
     // Close button
-    document.getElementById('cat-close')?.addEventListener('click', () => {
+    const closeBtn = this._container?.querySelector('#cat-close') || document.getElementById('cat-close');
+    closeBtn?.addEventListener('click', () => {
       try { SFXLib.click?.() || SFXLib.playClick?.(); } catch (e) {}
       EventBus.emit('catalogue:back');
     });
@@ -390,12 +394,12 @@ export class CatalogueTerminal {
 
     if (opts.title) {
       this._title = opts.title;
-      const t = document.getElementById('cat-title-text');
+      const t = this._container?.querySelector('#cat-title-text') || document.getElementById('cat-title-text');
       if (t) t.textContent = opts.title;
     }
     if (opts.subtitle) {
       this._subtitle = opts.subtitle;
-      const s = document.getElementById('cat-subtitle-text');
+      const s = this._container?.querySelector('#cat-subtitle-text') || document.getElementById('cat-subtitle-text');
       if (s) s.textContent = opts.subtitle;
     }
     if (opts.filter) {

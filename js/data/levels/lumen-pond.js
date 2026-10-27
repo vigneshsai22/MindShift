@@ -34,18 +34,16 @@ export function getLumenPondLevel(level) {
   // Base difficulty Elo rating (600 - 1500)
   const difficulty = 600 + 30 * (level - 1);
 
-  // Time limits scaled per round
-  let perRoundTime = 14;
-  if (level > 20) perRoundTime = 11;
-  else if (level > 10) perRoundTime = 13;
+  // Time limits scaled per round (16s at Lv 1 down to 9s at Lv 30)
+  const perRoundTime = Math.max(9, Math.round((16 - (level - 1) * 0.24) * 10) / 10);
 
-  // Sequence length progression
-  const seqLengthMin = Math.min(6, Math.floor(3 + (level - 1) * 0.12));
+  // Sequence length progression: Lv 1–5 starts at 3, scaling up to 7–8 at peak
+  const seqLengthMin = Math.min(6, Math.floor(3 + (level - 1) * 0.14));
   const seqLengthMax = Math.min(8, seqLengthMin + (isBoss ? 2 : 1));
 
-  // Playback pace increases slightly as level rises
-  const stepDuration = Math.max(0.35, 0.55 - (level - 1) * 0.007);
-  const interval = Math.max(0.14, 0.25 - (level - 1) * 0.004);
+  // Playback pace increases as level rises (faster sequences require sharper working memory)
+  const stepDuration = Math.max(0.32, Math.round((0.58 - (level - 1) * 0.009) * 100) / 100);
+  const interval = Math.max(0.12, Math.round((0.26 - (level - 1) * 0.0048) * 100) / 100);
 
   // Target par duration scaled to rounds (average 9.5-12s per round)
   const parTime = Math.round(rounds * (perRoundTime * 0.8));

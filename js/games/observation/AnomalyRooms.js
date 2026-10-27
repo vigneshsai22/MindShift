@@ -69,6 +69,10 @@ export class AnomalyRooms extends GameBase {
 
     const canvas = document.querySelector('#three-canvas') || window;
     this.listen(canvas, 'pointerdown', (e) => this._onPointerDown(e));
+    this.listen(canvas, 'touchstart', (e) => {
+      if (e.cancelable) e.preventDefault();
+      this._onPointerDown(e);
+    }, { passive: false });
   }
 
   start(levelParams) {
@@ -165,6 +169,13 @@ export class AnomalyRooms extends GameBase {
       specimen.scale.set(scaleVal, scaleVal, scaleVal);
       pGroup.add(specimen);
 
+      // Generous invisible hit collider for seamless fingertip touch & mouse hits
+      const hitProxyGeom = new THREE.CylinderGeometry(1.0, 1.0, 2.6, 16);
+      const hitProxyMat = new THREE.MeshBasicMaterial({ visible: false, transparent: true, opacity: 0 });
+      const hitProxy = new THREE.Mesh(hitProxyGeom, hitProxyMat);
+      hitProxy.position.y = 0.45;
+      pGroup.add(hitProxy);
+
       const propData = {
         index: i,
         isAnomaly,
@@ -174,6 +185,8 @@ export class AnomalyRooms extends GameBase {
         baseScale: scaleVal
       };
       pGroup.userData = propData;
+      hitProxy.userData = propData;
+      specimen.userData = propData;
 
       this.addObject(pGroup);
       this.props.push(propData);
@@ -263,8 +276,20 @@ export class AnomalyRooms extends GameBase {
 
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-    const clientX = e.clientX !== undefined ? e.clientX : (e.touches?.[0]?.clientX ?? 0);
-    const clientY = e.clientY !== undefined ? e.clientY : (e.touches?.[0]?.clientY ?? 0);
+
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else if (e.clientX !== undefined && e.clientY !== undefined) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else {
+      return;
+    }
 
     this._mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this._mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -275,10 +300,10 @@ export class AnomalyRooms extends GameBase {
 
     if (hits.length > 0) {
       let obj = hits[0].object;
-      while (obj.parent && (!obj.userData || obj.userData.index === undefined)) {
+      while (obj && (!obj.userData || obj.userData.index === undefined)) {
         obj = obj.parent;
       }
-      if (obj.userData && obj.userData.index !== undefined) {
+      if (obj && obj.userData && obj.userData.index !== undefined) {
         this._selectProp(obj.userData);
       }
     }

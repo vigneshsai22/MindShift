@@ -15,8 +15,7 @@ Default entry point is **`http://localhost:8080/`** (no query string required).
 | 2 | `witness-room` | Witness Room | Memory | **Card-only** | 0 | 3D | Card-only in Catalogue. Video-clue episodic memory scheduled for Tier 2. |
 | 3 | `echo-shelves` | Echo Shelves | Memory | **Card-only** | 0 | 3D | Card-only in Catalogue. Spatial memory shelf reconstruction scheduled for Tier 3. |
 | 4 | `tone-tower` | Tone Tower | Memory | **Card-only** | 0 | 2.5D | Card-only in Catalogue. Melodic pitch recall scheduled for Tier 2. |
-| 5 | `twin-crystals` | Twin Crystals | Memory | **Card-only** | 0 | 2.5D | Card-only in Catalogue. 3D grid pair matching scheduled for Tier 3. |
-| 6 | `terminal-hack` | Terminal Hack | Logic | **Playable** | 1–30 | 3D | None. Boolean logic circuits (AND/OR/XOR) with interactive raycast toggle registers. |
+| 6 | `terminal-hack` | Terminal Hack | Logic | **Retired** | 0 | 3D | Removed from active playable roster. |
 | 7 | `gate-circuit` | Gate Circuit | Logic | **Card-only** | 0 | 3D | Card-only in Catalogue. Multi-switch power routing scheduled for Tier 3. |
 | 8 | `evidence-board` | Evidence Board | Logic | **Card-only** | 0 | 3D | Card-only in Catalogue. Deduction constraint grid scheduled for Tier 3. |
 | 9 | `balance-lab` | Balance Lab | Logic | **Card-only** | 0 | 2.5D | Card-only in Catalogue. Binary-search scale weighing scheduled for Tier 2. |
@@ -36,15 +35,15 @@ Default entry point is **`http://localhost:8080/`** (no query string required).
 | 23 | `lane-shift` | Lane Shift | Reaction | **Card-only** | 0 | 3D | Card-only in Catalogue. 3D highway runner with divided attention scheduled for Tier 3. |
 | 24 | `signal-console` | Signal Console | Reaction | **Card-only** | 0 | 2.5D | Card-only in Catalogue. Choice reaction flip console scheduled for Tier 2. |
 | 25 | `reactor-control` | Reactor Control | Reaction | **Card-only** | 0 | 3D | Card-only in Catalogue. Multitasking gauge monitoring scheduled for Tier 3. |
-| 26 | `rotation-core` | Rotation Core | Spatial | **Playable** | 1–30 | 3D | None. Shepard-Metzler mental rotation matching 3D polyhedra vs chiral enantiomers. |
+| 26 | `rotation-core` | Rotation Core | Spatial | **Retired** | 0 | 3D | Removed from active playable roster. |
 | 27 | `net-folder` | Net Folder | Spatial | **Card-only** | 0 | 3D | Card-only in Catalogue. 3D cube net mental folding scheduled for Tier 3. |
 | 28 | `mind-map-maze` | Mind Map Maze | Spatial | **Card-only** | 0 | 3D | Card-only in Catalogue. Top-down maze recall scheduled for Tier 3. |
 | 29 | `frost-route` | Frost Route | Spatial | **Card-only** | 0 | 2.5D | Card-only in Catalogue. Isometric sliding pathfinding scheduled for Tier 2. |
 | 30 | `drop-lab` | Drop Lab | Spatial | **Card-only** | 0 | 3D | Card-only in Catalogue. Physics rope & support chain reaction scheduled for Tier 3. |
 
 **Audit Summary:**
-- **Playable Games:** 6 / 30 (100% of Tier 1 reference games across all 6 cognitive skills, with complete procedural level scaling from Level 1 to 30).
-- **Card-Only ("Coming soon") Games:** 24 / 30 (accurately labeled in Catalogue Terminal with lock badges; non-playable cards do not trigger false starts).
+- **Playable Games:** 4 active 3D games (`lumen-pond`, `hologram-matrix`, `reflex-arena`, `anomaly-rooms` with complete procedural level scaling from Level 1 to 30).
+- **Card-Only / Locked Games:** 26 / 30 (accurately labeled in Catalogue Terminal with lock badges; non-playable cards do not trigger false starts).
 
 ---
 

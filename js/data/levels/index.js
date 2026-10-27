@@ -3,17 +3,13 @@
    ═══════════════════════════════════════════════════════════════ */
 
 import { getLumenPondLevel }      from './lumen-pond.js';
-import { getTerminalHackLevel }   from './terminal-hack.js';
 import { getHologramMatrixLevel } from './hologram-matrix.js';
-import { getRotationCoreLevel }   from './rotation-core.js';
 import { getReflexArenaLevel }    from './reflex-arena.js';
 import { getAnomalyRoomsLevel }   from './anomaly-rooms.js';
 
 const GETTERS = {
   'lumen-pond':      getLumenPondLevel,
-  'terminal-hack':   getTerminalHackLevel,
   'hologram-matrix': getHologramMatrixLevel,
-  'rotation-core':   getRotationCoreLevel,
   'reflex-arena':    getReflexArenaLevel,
   'anomaly-rooms':   getAnomalyRoomsLevel
 };

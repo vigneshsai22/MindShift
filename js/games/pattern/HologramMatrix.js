@@ -35,48 +35,52 @@ export class HologramMatrix extends GameBase {
   build(scene, camera) {
     super.build(scene, camera);
 
-    camera.position.set(0, 1.8, 6.4);
-    camera.lookAt(0, 1.6, 0);
+    camera.position.set(0, 1.8, 7.0);
+    camera.lookAt(0, 1.45, 0);
 
-    // Hologram projector base ring
-    const baseGeom = new THREE.CylinderGeometry(4.2, 4.6, 0.4, 48);
+    // Hologram projector base ring — lowered so options float cleanly above it
+    const baseGeom = new THREE.CylinderGeometry(4.8, 5.2, 0.4, 48);
     const baseMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      metalness: 0.85,
-      roughness: 0.2
+      color: 0x090f1d,
+      metalness: 0.9,
+      roughness: 0.3
     });
     const base = new THREE.Mesh(baseGeom, baseMat);
-    base.position.set(0, -0.6, 0);
+    base.position.set(0, -1.35, 0);
     this.addObject(base);
 
     // Glowing emitter ring
-    const ringGeom = new THREE.TorusGeometry(4.25, 0.08, 16, 64);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+    const ringGeom = new THREE.TorusGeometry(4.85, 0.06, 16, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
     const ring = new THREE.Mesh(ringGeom, ringMat);
     ring.rotation.x = Math.PI / 2;
-    ring.position.set(0, -0.4, 0);
+    ring.position.set(0, -1.15, 0);
     this.addObject(ring);
 
     // Lighting
-    const pLight = new THREE.PointLight(0xc084fc, 2.5, 16);
+    const pLight = new THREE.PointLight(0xc084fc, 2.5, 18);
     pLight.position.set(0, 3.2, 3);
     this.addObject(pLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xe9d5ff, 0x1e1b4b, 1.2);
+    const hemiLight = new THREE.HemisphereLight(0xf3e8ff, 0x0f172a, 1.3);
     this.addObject(hemiLight);
 
     this.matrixGroup = new THREE.Group();
-    this.matrixGroup.position.set(0, 2.2, 0);
+    this.matrixGroup.position.set(0, 2.35, 0);
     this.addObject(this.matrixGroup);
 
     const canvas = document.querySelector('#three-canvas') || window;
     this.listen(canvas, 'pointerdown', (e) => this._onPointerDown(e));
+    this.listen(canvas, 'touchstart', (e) => {
+      if (e.cancelable) e.preventDefault();
+      this._onPointerDown(e);
+    }, { passive: false });
   }
 
   start(levelParams) {
     if (this.camera) {
-      this.camera.position.set(0, 1.8, 6.4);
-      this.camera.lookAt(0, 1.6, 0);
+      this.camera.position.set(0, 1.8, 7.0);
+      this.camera.lookAt(0, 1.45, 0);
     }
     super.start(levelParams);
   }
@@ -150,65 +154,153 @@ export class HologramMatrix extends GameBase {
     // color = colors[(2 + 2) % colors.length]
     // scale = 0.85 + 2 * 0.15 = 1.15
     const correctShapeIdx = (2 + 2 + ruleShift) % shapes.length;
-    const correctColor = colors[(2 + 2) % colors.length];
+    const correctColorIdx = (2 + 2) % colors.length;
+    const correctColor = colors[correctColorIdx];
     const correctScale = 1.15;
 
-    this.correctCandidateIndex = Math.floor(Math.random() * 4);
+    // Build 4 strictly unique candidates:
+    // 1. Correct target
+    // 2. Distractor 1: Same shape, different color (tests color pattern)
+    // 3. Distractor 2: Same color, different shape (tests shape pattern)
+    // 4. Distractor 3: Different shape AND different color
+    const candidateDefs = [
+      {
+        isCorrect: true,
+        sIdx: correctShapeIdx,
+        col: correctColor,
+        sc: correctScale
+      },
+      {
+        isCorrect: false,
+        sIdx: correctShapeIdx,
+        col: colors[(correctColorIdx + 1) % colors.length],
+        sc: correctScale
+      },
+      {
+        isCorrect: false,
+        sIdx: (correctShapeIdx + 1) % shapes.length,
+        col: correctColor,
+        sc: correctScale
+      },
+      {
+        isCorrect: false,
+        sIdx: (correctShapeIdx + 2) % shapes.length,
+        col: colors[(correctColorIdx + 2) % colors.length],
+        sc: correctScale
+      }
+    ];
+
+    // Shuffle candidate positions randomly so correct option can be any of 1..4
+    for (let j = candidateDefs.length - 1; j > 0; j--) {
+      const k = Math.floor(Math.random() * (j + 1));
+      [candidateDefs[j], candidateDefs[k]] = [candidateDefs[k], candidateDefs[j]];
+    }
+
+    this.correctCandidateIndex = candidateDefs.findIndex(c => c.isCorrect);
     const candSpacing = 1.45;
     const candStartX = -((4 - 1) * candSpacing) / 2;
+    const candY = 0.08; // High enough to float completely clear of the floor and bottom dock
 
     for (let i = 0; i < 4; i++) {
-      const isCorrect = (i === this.correctCandidateIndex);
-      let sIdx = isCorrect ? correctShapeIdx : ((correctShapeIdx + i + 1) % shapes.length);
-      let col = isCorrect ? correctColor : colors[(i + 1) % colors.length];
-      let sc = isCorrect ? correctScale : (0.75 + (i % 2) * 0.35);
+      const cDef = candidateDefs[i];
+      const isCorrect = cDef.isCorrect;
+      const sIdx = cDef.sIdx;
+      const col = cDef.col;
+      const sc = cDef.sc;
 
+      const candGroup = new THREE.Group();
+      candGroup.position.set(candStartX + i * candSpacing, candY, 0.2);
+
+      // High-contrast translucent dark backing disc
+      const backGeom = new THREE.CircleGeometry(0.56, 32);
+      const backMat = new THREE.MeshBasicMaterial({
+        color: 0x090d16,
+        transparent: true,
+        opacity: 0.88,
+        side: THREE.DoubleSide
+      });
+      const backDisc = new THREE.Mesh(backGeom, backMat);
+      backDisc.position.z = -0.06;
+      candGroup.add(backDisc);
+
+      // Glowing card boundary ring
+      const ringG = new THREE.RingGeometry(0.52, 0.58, 32);
+      const ringM = new THREE.MeshBasicMaterial({ color: 0x64748b, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringG, ringM);
+      ring.position.z = -0.05;
+      candGroup.add(ring);
+
+      // The 3D geometric glyph
       const geom = shapes[sIdx]();
       const mat = new THREE.MeshStandardMaterial({
         color: col,
         roughness: 0.2,
         metalness: 0.7,
         emissive: col,
-        emissiveIntensity: 0.35
+        emissiveIntensity: 0.45
       });
-      const candMesh = new THREE.Mesh(geom, mat);
-      candMesh.position.set(candStartX + i * candSpacing, -0.6, 0.4);
-      candMesh.scale.set(sc, sc, sc);
+      const glyphMesh = new THREE.Mesh(geom, mat);
+      glyphMesh.scale.set(sc, sc, sc);
+      candGroup.add(glyphMesh);
 
-      // Card boundary ring
-      const ringG = new THREE.RingGeometry(0.48, 0.54, 24);
-      const ringM = new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide });
-      const ring = new THREE.Mesh(ringG, ringM);
-      ring.position.z = -0.05;
-      candMesh.add(ring);
+      // Number badge sprite [1], [2], [3], [4]
+      const badgeCanvas = document.createElement('canvas');
+      badgeCanvas.width = 64;
+      badgeCanvas.height = 64;
+      const bctx = badgeCanvas.getContext('2d');
+      bctx.fillStyle = '#c084fc';
+      bctx.font = 'bold 36px Inter, sans-serif';
+      bctx.textAlign = 'center';
+      bctx.textBaseline = 'middle';
+      bctx.fillText(String(i + 1), 32, 32);
+      const badgeTex = new THREE.CanvasTexture(badgeCanvas);
+      const badgeMat = new THREE.SpriteMaterial({ map: badgeTex, transparent: true, opacity: 0.95 });
+      const badgeSprite = new THREE.Sprite(badgeMat);
+      badgeSprite.position.set(0, -0.74, 0.05);
+      badgeSprite.scale.set(0.42, 0.42, 1);
+      candGroup.add(badgeSprite);
 
-      candMesh.userData = {
+      // Generous invisible hit proxy for fingertip and mouse clicks
+      const hitProxyGeom = new THREE.CylinderGeometry(0.72, 0.72, 1.4, 16);
+      const hitProxyMat = new THREE.MeshBasicMaterial({ visible: false, transparent: true, opacity: 0 });
+      const hitProxy = new THREE.Mesh(hitProxyGeom, hitProxyMat);
+      hitProxy.rotation.x = Math.PI / 2;
+      candGroup.add(hitProxy);
+
+      const propData = {
         index: i,
         isCorrect,
+        candGroup,
+        glyph: glyphMesh,
         mat,
         ringM,
-        basePos: candMesh.position.clone()
+        basePos: candGroup.position.clone()
       };
+      candGroup.userData = propData;
+      glyphMesh.userData = propData;
+      hitProxy.userData = propData;
 
-      this.addObject(candMesh);
-      this.candidates.push(candMesh);
+      this.addObject(candGroup);
+      this.candidates.push(candGroup);
 
       // Register target with InputManager
-      this.registerTarget(`matrix_cand_${i}`, candMesh, {
-        hitRadius: 1.25,
+      this.registerTarget(`matrix_cand_${i}`, candGroup, {
+        hitRadius: 1.35,
         key: String(i + 1),
         onHover: (hovered) => {
           if (hovered) {
-            mat.emissiveIntensity = 1.0;
+            mat.emissiveIntensity = 1.1;
             ringM.color.setHex(0xc084fc);
+            candGroup.position.y = candY + 0.08;
           } else {
-            mat.emissiveIntensity = 0.35;
-            ringM.color.setHex(0x475569);
+            mat.emissiveIntensity = 0.45;
+            ringM.color.setHex(0x64748b);
+            candGroup.position.y = candY;
           }
         },
         onPress: () => {
           if (this.paused || this.finished || !this.roundActive) return;
-          this._chooseCandidate(candMesh);
+          this._chooseCandidate(candGroup);
         }
       });
     }
@@ -302,17 +394,35 @@ export class HologramMatrix extends GameBase {
 
     const canvas = document.querySelector('#three-canvas');
     const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-    const clientX = e.clientX !== undefined ? e.clientX : (e.touches?.[0]?.clientX ?? 0);
-    const clientY = e.clientY !== undefined ? e.clientY : (e.touches?.[0]?.clientY ?? 0);
+
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else if (e.clientX !== undefined && e.clientY !== undefined) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else {
+      return;
+    }
 
     this._mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this._mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
     this._raycaster.setFromCamera(this._mouse, this.camera);
-    const hits = this._raycaster.intersectObjects(this.candidates, false);
+    const hits = this._raycaster.intersectObjects(this.candidates, true);
 
     if (hits.length > 0) {
-      this._chooseCandidate(hits[0].object);
+      let obj = hits[0].object;
+      while (obj && (!obj.userData || obj.userData.index === undefined)) {
+        obj = obj.parent;
+      }
+      if (obj && obj.userData && obj.userData.index !== undefined) {
+        this._chooseCandidate(obj.userData.candGroup || obj);
+      }
     }
   }
 
@@ -355,12 +465,16 @@ export class HologramMatrix extends GameBase {
     super.update(dt);
     this._time += dt;
 
-    // Subtle rotational hovering of matrix cells
+    // Subtle rotational hovering of matrix cells (scales with level difficulty)
+    const rotSpeed = 0.25 + Math.min(0.65, (this.level - 1) * 0.022);
     for (const cell of this.matrixCells) {
-      cell.rotation.y += dt * 0.55;
+      cell.rotation.y += dt * rotSpeed;
     }
+    // Rotate only the glyph inside each candidate pod, keeping the backplate & badge facing camera
     for (const cand of this.candidates) {
-      cand.rotation.y += dt * 0.75;
+      if (cand.userData.glyph) {
+        cand.userData.glyph.rotation.y += dt * 0.75;
+      }
     }
     if (this._targetFrame) {
       this._targetFrame.rotation.z += dt * 0.5;

@@ -16,6 +16,7 @@ export class MainMenu {
   }
 
   show() {
+    this.el.classList.remove('exiting');
     this.el.classList.add('active');
     this._bindButtons();
     this._renderProfiles();
@@ -107,7 +108,8 @@ export class MainMenu {
     const profile = this.engine.currentPlayer;
     let hasProgress = false;
     try {
-      const prog = JSON.parse(localStorage.getItem('mindshift_progress') || '{}');
+      const progKey = profile?.id ? `mindshift_progress_${profile.id}` : 'mindshift_progress';
+      const prog = JSON.parse(localStorage.getItem(progKey) || localStorage.getItem('mindshift_progress') || '{}');
       hasProgress = Object.keys(prog).length > 0;
     } catch (e) {}
     const history = this.engine.profiles?.getHistory?.(profile?.id) || [];
@@ -133,7 +135,8 @@ export class MainMenu {
     let bestStreak = 3;
 
     try {
-      const prog = JSON.parse(localStorage.getItem('mindshift_progress') || '{}');
+      const progKey = profile?.id ? `mindshift_progress_${profile.id}` : 'mindshift_progress';
+      const prog = JSON.parse(localStorage.getItem(progKey) || localStorage.getItem('mindshift_progress') || '{}');
       for (const gId in prog) {
         const g = prog[gId];
         for (const lv in g.levels) {
@@ -189,37 +192,12 @@ export class MainMenu {
       }
     });
 
-    // Big button 2: Game Catalogue (Free Practice)
-    this._bind('btn-game-catalogue', async () => {
-      this._ensureProfile();
-      this.engine.audio?.init();
-      this.engine.audio?.resume();
-      if (!window.__app__) {
-        for (let i = 0; i < 20 && !window.__app__; i++) {
-          await new Promise(r => setTimeout(r, 100));
-        }
-      }
-      if (window.__app__) {
-        window.__app__.startFreePractice();
-      } else {
-        console.error('[MainMenu] window.__app__ not ready — reload the page.');
-        alert('MindShift 3D is initializing. Please wait a moment and try again.');
-      }
-    });
-
-    // Button 3: Performance Report
+    // Button 2: Performance Report
     this._bind('btn-performance-report', () => {
       if (!this._hasReportData()) return;
       this.engine.audio?.init();
       this.engine.audio?.resume();
       this._showPerformanceReport();
-    });
-
-    // Link 4: Legacy modes
-    this._bind('link-legacy-modes', () => {
-      this.engine.audio?.init();
-      this.engine.audio?.resume();
-      this.engine.navigate('game-mode-select');
     });
 
     this._updateReportButtonState();
