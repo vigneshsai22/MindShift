@@ -144,8 +144,11 @@ export class App {
 
     // If 3D subsystem is already built, simply resume loop & HUD
     if (this.scene3d) {
-      this._clock.start();
-      this._loop();
+      this._running = true;
+      if (!this._rafId) {
+        this._clock.start();
+        this._loop();
+      }
       this.hud?.show();
       console.log('[MindShift] 3D world resumed.');
       return;
@@ -211,6 +214,7 @@ export class App {
       await this.start3D();
       this.mode = 'assessment';
       this._assessmentIndex = 0;
+      this.scene3d?.clearGameObjects();
       await this.catalogue?.show({
         title: '🔬 Mind Lab Facility — Cognitive Assessment',
         subtitle: 'Select any cognitive domain to begin your evaluation, then choose Level 1–30'
@@ -228,6 +232,7 @@ export class App {
     try {
       await this.start3D();
       this.mode = 'practice';
+      this.scene3d?.clearGameObjects();
       await this.catalogue?.show({
         title: '🧠 Cognitive Game Catalogue — All Wings',
         subtitle: 'Explore all 30 facility games across 6 cognitive wings — select any challenge & level (1–30)'
@@ -245,6 +250,14 @@ export class App {
       window.location.search.includes('test');
     const hasOnboarded = !!localStorage.getItem('mindshift_onboarded_' + gameId);
 
+    // Ensure 3D canvas and render loop are actively spinning
+    if (this.canvas) this.canvas.style.display = 'block';
+    this._running = true;
+    if (!this._rafId && this.scene3d) {
+      this._clock.start();
+      this._loop();
+    }
+
     if (this.inputManager) {
       this.inputManager.clearTargets();
       this.inputManager.setDragHandler(null);
@@ -261,6 +274,7 @@ export class App {
 
     // Purge any residual 3D meshes from previous game
     this.scene3d?.clearGameObjects();
+    this.resultScreen?.hide();
 
     const GameCls = GAME_CLASSES[gameId];
     if (!GameCls) {
@@ -291,7 +305,7 @@ export class App {
 
     // Instantiate & build
     this.activeGame = new GameCls();
-    this.activeGame.build(this.scene3d.scene, this.scene3d.camera);
+    this.activeGame.build(this.scene3d.gameRoot || this.scene3d.scene, this.scene3d.camera);
 
     // Update HUD with level config
     this.hud.show(meta.name, level, meta.skill || 'memory', gameId);

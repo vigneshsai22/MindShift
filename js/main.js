@@ -6,8 +6,8 @@
    ?game=ID   → deep-link directly into a specific game
    ?legacy=1  → shows classic 2D mode select
    ═══════════════════════════════════════════════ */
-import { GameEngine } from './engine/GameEngine.js?v=20261012';
-import { App }        from './App.js?v=20261012';
+import { GameEngine } from './engine/GameEngine.js?v=20261028_v6';
+import { App }        from './App.js?v=20261028_v6';
 
 const bootstrap = async () => {
   const engine = new GameEngine();

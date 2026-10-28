@@ -66,6 +66,12 @@ export class Scene3D {
     this.dirLight.shadow.camera.bottom = -20;
     this.scene.add(this.dirLight);
 
+    /* Dedicated root group for active game content */
+    this.gameRoot = new THREE.Group();
+    this.gameRoot.name = 'gameRoot';
+    this.gameRoot.userData.isBaseFacility = true;
+    this.scene.add(this.gameRoot);
+
     /* FPS counter state */
     this._fpsFrames = 0;
     this._fpsTime   = performance.now();
@@ -141,9 +147,33 @@ export class Scene3D {
    */
   clearGameObjects() {
     if (!this.scene) return;
+
+    // 1. Purge all game content from dedicated gameRoot group
+    if (this.gameRoot) {
+      while (this.gameRoot.children.length > 0) {
+        const obj = this.gameRoot.children[0];
+        this.gameRoot.remove(obj);
+        obj.traverse?.(child => {
+          if (child.geometry) {
+            try { child.geometry.dispose(); } catch (e) {}
+          }
+          if (child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach(m => {
+              try {
+                if (m.map) m.map.dispose();
+                m.dispose();
+              } catch (e) {}
+            });
+          }
+        });
+      }
+    }
+
+    // 2. Also scrub any objects added directly to this.scene that are not base fixtures
     const toRemove = [];
     for (const child of this.scene.children) {
-      if (child === this.camera || child === this.ambientLight || child === this.dirLight || child?.userData?.isBaseFacility) {
+      if (child === this.camera || child === this.ambientLight || child === this.dirLight || child === this.gameRoot || child?.userData?.isBaseFacility) {
         continue;
       }
       toRemove.push(child);
@@ -173,10 +203,18 @@ export class Scene3D {
       }
     }
 
-    // Reset default camera position
+    // 3. Reset default camera position and orientation
     if (this.camera) {
       this.camera.position.set(0, 1.7, 0);
       this.camera.rotation.set(0, 0, 0);
+    }
+
+    // 4. Force WebGL clear and flush to immediately erase previous game frame
+    if (this.renderer && this.scene && this.camera) {
+      try {
+        this.renderer.clear();
+        this.renderer.render(this.scene, this.camera);
+      } catch (e) {}
     }
   }
 
