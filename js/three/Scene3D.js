@@ -37,19 +37,24 @@ export class Scene3D {
 
     /* Ambient light — rich fill lighting */
     this.ambientLight = new THREE.AmbientLight(0x0a2642, 1.3);
+    this.ambientLight.userData.isBaseFacility = true;
     this.scene.add(this.ambientLight);
 
     /* Accent point light follows camera; colour shifts with difficulty */
     this.accentLight = new THREE.PointLight(0x00f2fe, 2.2, 35);
+    this.accentLight.userData.isBaseFacility = true;
     this.camera.add(this.accentLight); // attached to camera so it moves with player
+    this.camera.userData.isBaseFacility = true;
     this.scene.add(this.camera);       // camera must be in scene when it has children
 
     /* Hemisphere light for vibrant sky/ground reflection */
     const hemi = new THREE.HemisphereLight(0x00f2fe, 0x031828, 0.8);
+    hemi.userData.isBaseFacility = true;
     this.scene.add(hemi);
 
     /* Directional light for subtle light-shaft feeling */
     this.dirLight = new THREE.DirectionalLight(0x0044aa, 0.3);
+    this.dirLight.userData.isBaseFacility = true;
     this.dirLight.position.set(5, 15, 5);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.mapSize.set(1024, 1024);
@@ -128,6 +133,51 @@ export class Scene3D {
         setTimeout(() => overlay.remove(), duration + 50);
       }, duration + 50);
     });
+  }
+
+  /**
+   * Remove and dispose all non-facility objects (game props, room meshes, lights)
+   * from the 3D scene while keeping base camera, ambient, and directional facility lights intact.
+   */
+  clearGameObjects() {
+    if (!this.scene) return;
+    const toRemove = [];
+    for (const child of this.scene.children) {
+      if (child === this.camera || child === this.ambientLight || child === this.dirLight || child?.userData?.isBaseFacility) {
+        continue;
+      }
+      toRemove.push(child);
+    }
+
+    for (const obj of toRemove) {
+      try {
+        if (obj.parent) obj.parent.remove(obj);
+        else this.scene.remove(obj);
+
+        obj.traverse?.(child => {
+          if (child.geometry) {
+            try { child.geometry.dispose(); } catch (e) {}
+          }
+          if (child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach(m => {
+              try {
+                if (m.map) m.map.dispose();
+                m.dispose();
+              } catch (e) {}
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('[Scene3D] Error cleaning up object:', err);
+      }
+    }
+
+    // Reset default camera position
+    if (this.camera) {
+      this.camera.position.set(0, 1.7, 0);
+      this.camera.rotation.set(0, 0, 0);
+    }
   }
 
   dispose() {

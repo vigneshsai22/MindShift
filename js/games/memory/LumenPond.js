@@ -748,6 +748,10 @@ export class LumenPond extends GameBase {
     const canvas = document.querySelector('#three-canvas');
     if (canvas) canvas.style.cursor = 'default';
     this.sequencePlayer?.stop?.();
+    this.pads = [];
+    this._ripples = [];
+    this._caustics = null;
+    this._particles = null;
     super.exit();
   }
 }

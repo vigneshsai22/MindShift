@@ -251,9 +251,16 @@ export class App {
     }
 
     if (this.activeGame) {
-      this.activeGame.exit();
+      try {
+        this.activeGame.exit();
+      } catch (e) {
+        console.warn('[App] Error during activeGame.exit():', e);
+      }
       this.activeGame = null;
     }
+
+    // Purge any residual 3D meshes from previous game
+    this.scene3d?.clearGameObjects();
 
     const GameCls = GAME_CLASSES[gameId];
     if (!GameCls) {
@@ -674,10 +681,17 @@ export class App {
     }
 
     if (this.activeGame) {
-      this.activeGame.exit();
+      try {
+        this.activeGame.exit();
+      } catch (e) {
+        console.warn('[App] Error during activeGame.exit():', e);
+      }
       this.activeGame = null;
     }
     this.activeGameId = null;
+
+    // Purge scene meshes from exited game
+    this.scene3d?.clearGameObjects();
 
     if (this.inputManager) {
       this.inputManager.clearTargets();

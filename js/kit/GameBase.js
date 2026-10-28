@@ -633,6 +633,91 @@ export class GameBase {
   }
 
   /**
+   * Complete exit and cleanup of the game, tearing down all 3D meshes,
+   * listeners, timers, tweens, and InputManager targets.
+   */
+  exit() {
+    this.finished = true;
+    this.roundActive = false;
+
+    // 1. Clear all registered timers and intervals
+    if (this._timeouts) {
+      this._timeouts.forEach(id => clearTimeout(id));
+      this._timeouts = [];
+    }
+    if (this._intervals) {
+      this._intervals.forEach(id => clearInterval(id));
+      this._intervals = [];
+    }
+    if (this._rafs) {
+      this._rafs.forEach(id => cancelAnimationFrame(id));
+      this._rafs = [];
+    }
+
+    // 2. Stop all running tweens
+    if (this._tweens) {
+      this._tweens.forEach(tw => {
+        try { tw?.stop?.(); } catch (e) {}
+      });
+      this._tweens = [];
+    }
+
+    // 3. Unsubscribe EventBus listeners
+    if (this._eventUnsubs) {
+      this._eventUnsubs.forEach(unsub => {
+        try { unsub?.(); } catch (e) {}
+      });
+      this._eventUnsubs = [];
+    }
+
+    // 4. Remove DOM event listeners
+    if (this._listeners) {
+      this._listeners.forEach(({ target, event, fn }) => {
+        try { target?.removeEventListener?.(event, fn); } catch (e) {}
+      });
+      this._listeners = [];
+    }
+
+    // 5. Unregister all InputManager targets
+    if (this.inputManager && this._registeredTargetIds) {
+      this._registeredTargetIds.forEach(id => {
+        try { this.inputManager.unregisterTarget(id); } catch (e) {}
+      });
+      this._registeredTargetIds = [];
+    }
+
+    // 6. Tear down and dispose all 3D scene objects
+    if (this.scene && this._disposables) {
+      for (const obj of this._disposables) {
+        try {
+          if (obj.parent) {
+            obj.parent.remove(obj);
+          } else {
+            this.scene.remove(obj);
+          }
+          obj.traverse?.(child => {
+            if (child.geometry) {
+              try { child.geometry.dispose(); } catch (e) {}
+            }
+            if (child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach(m => {
+                try {
+                  if (m.map) m.map.dispose();
+                  m.dispose();
+                } catch (e) {}
+              });
+            }
+          });
+        } catch (e) {
+          console.warn('[GameBase] Error disposing 3D object on exit:', e);
+        }
+      }
+      this._disposables = [];
+    }
+  }
+
+  /**
    * Compute star rating from trial result.
    */
   static computeStars(result) {
