@@ -9,7 +9,7 @@
 import { GameEngine } from './engine/GameEngine.js?v=20261012';
 import { App }        from './App.js?v=20261012';
 
-document.addEventListener('DOMContentLoaded', async () => {
+const bootstrap = async () => {
   const engine = new GameEngine();
   try {
     engine.init();
@@ -100,4 +100,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 500);
   }
   // ?3d=1 and no params → stay on home screen; user clicks a button to start
-});
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}

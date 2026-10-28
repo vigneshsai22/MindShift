@@ -186,7 +186,6 @@ export class App {
         try { SFXLib.init(); } catch (e) { console.warn('[App] SFX init:', e); }
 
         this._initialized3D = true;
-      }
 
       this._running = true;
 
